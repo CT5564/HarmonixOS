@@ -5,6 +5,9 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from services.database import initialize_database
+
+
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -38,6 +41,8 @@ async def load_extensions():
             print(f"Loaded {filename}")
 
 async def main():
+    initialize_database()
+
     async with bot:
         await load_extensions()
         await bot.start(TOKEN)
