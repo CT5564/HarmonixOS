@@ -19,7 +19,8 @@ def initialize_database():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         completed INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP
     )
     """)
 
@@ -50,6 +51,65 @@ def get_tasks():
         WHERE completed = 0
         ORDER BY created_at
     """)
+
+    tasks = cursor.fetchall()
+
+    conn.close()
+
+    return tasks
+
+def complete_task(task_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE tasks
+        SET completed = 1,
+            completed_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (task_id,))
+
+    conn.commit()
+    conn.close()
+
+
+def delete_task(task_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM tasks WHERE id = ?",
+        (task_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def update_task(task_id, title):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE tasks
+        SET title = ?
+        WHERE id = ?
+    """, (title, task_id))
+
+    conn.commit()
+    conn.close()
+
+
+def search_tasks(keyword):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, title
+        FROM tasks
+        WHERE title LIKE ?
+        ORDER BY created_at
+    """, (f"%{keyword}%",))
 
     tasks = cursor.fetchall()
 
