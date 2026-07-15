@@ -1,9 +1,14 @@
 from discord.ext import commands
 from discord import app_commands
 
-from services.database import add_task, get_tasks
-
-from services.database import complete_task
+from services.database import (
+    add_task,
+    get_tasks,
+    complete_task,
+    delete_task,
+    update_task,
+    search_tasks,
+)
 
 class Tasks(commands.Cog):
 
@@ -45,8 +50,8 @@ class Tasks(commands.Cog):
 
         message = "# 📅 Today's Tasks\n\n"
 
-    for task in tasks:
-        message += f"`#{task[0]}` • {task[1]}\n"
+        for task in tasks:
+            message += f"`#{task[0]}` • {task[1]}\n"
 
         await interaction.response.send_message(message)
 
@@ -59,6 +64,10 @@ class Tasks(commands.Cog):
         interaction,
         task_id: int
     ):
+        async def done(self, interaction, task_id: int):
+            print("DONE COMMAND CALLED")
+
+            await interaction.response.send_message("Testing!")
 
         complete_task(task_id)
 
