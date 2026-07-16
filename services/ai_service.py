@@ -1,5 +1,9 @@
 from ollama import chat
 
+import time
+
+start = time.time()
+
 SYSTEM_PROMPT = """
 You are Harmonix.
 
@@ -16,7 +20,7 @@ Your job is to:
 
 Never mention being an AI assistant unless directly asked.
 """
-
+elapsed = time.time() - start
 
 def ask(prompt: str) -> str:
     response = chat(
@@ -34,3 +38,9 @@ def ask(prompt: str) -> str:
     )
 
     return response.message.content
+
+async def log_startup() -> None:
+    await logger.ai(
+    f"🔵 AI\n"
+    f"Prompt took {elapsed:.2f}s"
+)

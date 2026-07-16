@@ -32,7 +32,17 @@ async def on_ready():
 
     print(f"Logged in as {bot.user}")
 
+
+    #Logger setup
+    logger.setup(bot, DEV_CHANNEL)
+
+    await logger.log("🟢 Harmonix Online")
+
 import os
+
+#logger setup
+from services.logger import logger
+from config import DEV_CHANNEL
 
 async def load_extensions():
     for filename in os.listdir("./cogs"):
