@@ -2,6 +2,8 @@ from ollama import chat
 
 import time
 
+from services.logger import logger
+
 start = time.time()
 
 SYSTEM_PROMPT = """
@@ -20,9 +22,10 @@ Your job is to:
 
 Never mention being an AI assistant unless directly asked.
 """
-elapsed = time.time() - start
+
 
 def ask(prompt: str) -> str:
+    elapsed = time.time() - start
     response = chat(
         model="llama3.2:3b",      # Change if you're using another model
         messages=[
@@ -35,12 +38,12 @@ def ask(prompt: str) -> str:
                 "content": prompt
             }
         ]
+
+    await logger.ai(
+        f"🔵 AI\n"
+        f"Prompt took {elapsed:.2f}s"
+
+        )
     )
 
     return response.message.content
-
-async def log_startup() -> None:
-    await logger.ai(
-    f"🔵 AI\n"
-    f"Prompt took {elapsed:.2f}s"
-)

@@ -36,7 +36,7 @@ async def on_ready():
     #Logger setup
     logger.setup(bot, DEV_CHANNEL)
 
-    await logger.log("🟢 Harmonix Online")
+    await logger.ai("🟢 Harmonix Online")
 
 import os
 
