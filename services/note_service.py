@@ -11,7 +11,7 @@ async def create_note(content: str):
         f"Created note\n\n{content}"
     )
 
-def get_all_notes():
+async def get_notes():
 
     return db.get_notes()
 

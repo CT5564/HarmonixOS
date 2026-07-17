@@ -35,7 +35,7 @@ class Notes(commands.Cog):
         self,
         interaction
     ):
-
+        print("NOTES COMMAND CALLED")
         notes = await note_service.get_notes()
 
         if not notes:

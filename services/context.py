@@ -1,5 +1,7 @@
 # Context Service. Builds the current context for the AI.
 import services.database as db
+from services.memory import retrieve
+
 
 def build_task_context():
     ...
@@ -8,34 +10,35 @@ def build_note_context():
     ...
 
 
-def build_context() -> str:
-    """
-    Builds the current context for the AI.
-    """
+def build_context(prompt: str):
+    memory = retrieve(prompt)
 
-    tasks = db.get_tasks()[:10]
-    notes = db.get_notes()[:20]
+    tasks = memory["tasks"]
+    notes = memory["notes"]
 
-    context = "# CURRENT CONTEXT\n\n"
+    context = []
 
     # Tasks
-    context += "## Active Tasks\n"
-
     if tasks:
-        for task in tasks:
-            context += f"- {task[1]}\n"
-    else:
-        context += "- None\n"
 
-    context += "\n"
+        context.append("## Relevant Tasks\n")
+
+        for task in tasks:
+            context.append(
+                f"- {task[1]}"
+            )
 
     # Notes
-    context += "## Notes\n"
-
     if notes:
-        for note in notes[:10]:   # only the 10 most recent
-            context += f"- {note[1]}\n"
-    else:
-        context += "- None\n"
 
-    return context
+        context.append("\n## Relevant Notes\n")
+
+        for note in notes:
+            context.append(
+                f"- {note[1]}"
+            )
+
+    if not context:
+        return "No relevant memories."
+
+    return "\n".join(context)
