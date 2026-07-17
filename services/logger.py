@@ -1,3 +1,5 @@
+# Logger Service. Handles logging messages to a Discord channel.
+
 import discord
 from datetime import datetime
 

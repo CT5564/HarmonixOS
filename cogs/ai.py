@@ -1,3 +1,5 @@
+# AI Cog. Handles all AI-related commands and interactions.
+
 from discord.ext import commands
 from discord import app_commands
 

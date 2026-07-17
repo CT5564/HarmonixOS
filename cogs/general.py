@@ -1,3 +1,5 @@
+# General Cog. Contains general commands for the bot.
+
 from discord.ext import commands
 from discord import app_commands
 

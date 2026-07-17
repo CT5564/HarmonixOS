@@ -1,10 +1,10 @@
-from ollama import chat
+# AI Service. Handles all interactions with the AI model.
 
-import time
-
+from services.ollama_client import chat
+from services.context import build_context
 from services.logger import logger
 
-from services.context import build_context
+MODEL = "llama3.2:3b"
 
 SYSTEM_PROMPT = """
 You are Harmonix.
@@ -17,61 +17,70 @@ You have access to:
 • Notes
 • Projects
 
-When answering,
-use the provided context.
+Use the provided context.
 
-Never invent information that is not in the context.
+Never invent information not found in the context.
 """
 
-
-async def ask(prompt: str) -> str:
-    
-    start = time.time()
+async def ask(prompt: str):
 
     context = build_context()
-    
-    print("=" * 50)
-    print(context)
-    print("=" * 50)
 
-    response = chat(
-        model="llama3.2:3b",      # Change if you're using another model
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT + "\n\n" + context
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+    try:
+        response = await chat(
+            model=MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT + "\n\n" + context
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
 
-    elapsed = time.perf_counter() - start
+    except Exception as e:
+        await logger.error(
+            f"❌ AI Error\n\n```text\n{e}\n```"
+        )
+        raise
 
     await logger.ai(
-        f"""
-        🤖 AI Request
+    f"""
+    🤖 AI Request
 
-        **Model**
-        llama3.2:3b
+    **Model**
+    {response['model']}
 
-        **Time**
-        {elapsed:.2f}s
+    **Python**
+    {response['python_duration']:.2f}s
 
-        **Prompt**
-        ```text
-        {prompt[:300]}
+    **Inference**
+    {response['total_duration']/1e9:.2f}s
 
-        **Response**
-        {len(response.message.content)} characters
-        
-        **Context**
-        ```text
-        Context:
-        {len(context)} characters
-        """
+    **Load**
+    {response['load_duration']/1e9:.2f}s
+
+    **Prompt Eval**
+    {response['prompt_eval_duration']/1e9:.2f}s
+
+    **Generation**
+    {response['eval_duration']/1e9:.2f}s
+
+    **Prompt Tokens**
+    {response['prompt_eval_count']}
+
+    **Generated Tokens**
+    {response['eval_count']}
+
+    **Context**
+    {len(context)} chars
+
+    **Response**
+    {len(response['message']['content'])} chars
+    """
     )
 
-    return response.message.content
+    return response["message"]["content"]

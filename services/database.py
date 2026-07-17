@@ -1,3 +1,5 @@
+#Database Service. Handles all database operations for the bot.
+
 import sqlite3
 from pathlib import Path
 

@@ -27,6 +27,10 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"✅ Synced {len(synced)} commands.")
+
+        for cmd in synced:
+            print(f"- {cmd.name} | ID: {cmd.id}")
+
     except Exception as e:
         print(e)
 

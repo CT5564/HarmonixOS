@@ -1,3 +1,4 @@
+# Context Service. Builds the current context for the AI.
 import services.database as db
 
 def build_task_context():
