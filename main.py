@@ -11,7 +11,7 @@ from services.database import initialize_database
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-
+DEV_CHANNEL = int(os.getenv("DEV_CHANNEL"))
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -36,7 +36,21 @@ async def on_ready():
     #Logger setup
     logger.setup(bot, DEV_CHANNEL)
 
-    await logger.ai("🟢 Harmonix Online")
+    await logger.startup(
+        f"""
+    **Version**
+    0.1.0
+
+    **Model**
+    llama3.2:3b
+
+    **Guilds**
+    {len(bot.guilds)}
+
+    **Commands**
+    {len(bot.tree.get_commands())}
+    """
+    )
 
 import os
 

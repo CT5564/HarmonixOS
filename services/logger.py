@@ -12,39 +12,65 @@ class Logger:
         self.bot = bot
         self.channel_id = channel_id
 
-    async def _send(self, level, emoji, message):
+    async def _send(self, title, message, color):
 
         if self.bot is None:
             return
 
-        channel = self.bot.get_channel(self.channel_id)
+        channel = await self.bot.fetch_channel(self.channel_id)
 
-        if channel is None:
-            return
+        embed = discord.Embed(
+            title=title,
+            description=message,
+            color=color,
+            timestamp=datetime.now()
+        )
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        embed.set_footer(text="Harmonix Logger")
 
-        await channel.send(
-            f"{emoji} **{level}** • `{timestamp}`\n{message}"
+        await channel.send(embed=embed)
+
+    async def startup(self, message):
+        await self._send(
+            "🚀 STARTUP",
+            message,
+            discord.Color.green()
         )
 
     async def info(self, message):
-        await self._send("INFO", "🟢", message)
-
-    async def warning(self, message):
-        await self._send("WARNING", "🟡", message)
-
-    async def error(self, message):
-        await self._send("ERROR", "🔴", message)
+        await self._send(
+            "🟢 SYSTEM",
+            message,
+            discord.Color.blue()
+        )
 
     async def ai(self, message):
-        await self._send("AI", "🔵", message)
+        await self._send(
+            "🔵 AI",
+            message,
+            discord.Color.blurple()
+        )
 
     async def task(self, message):
-        await self._send("TASK", "🟣", message)
+        await self._send(
+            "🟣 TASK",
+            message,
+            discord.Color.purple()
+        )
 
-    async def startup(self, message):
-        await self._send("STARTUP", "🚀", message)
+    async def warning(self, message):
+        await self._send(
+            "🟡 WARNING",
+            message,
+            discord.Color.gold()
+        )
+
+    async def error(self, message):
+        await self._send(
+            "🔴 ERROR",
+            message,
+            discord.Color.red()
+        )
 
 
 logger = Logger()

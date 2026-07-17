@@ -21,8 +21,8 @@ class AI(commands.Cog):
 
         await interaction.response.defer()
 
-        answer = ask(prompt)
-
+        answer = await ask(prompt)
+        
         # Discord messages have a 2000 character limit
         if len(answer) > 1900:
             answer = answer[:1900] + "\n..."

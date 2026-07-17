@@ -1,14 +1,7 @@
 from discord.ext import commands
 from discord import app_commands
 
-from services.database import (
-    add_task,
-    get_tasks,
-    complete_task,
-    delete_task,
-    update_task,
-    search_tasks,
-)
+from services import task_service
 
 class Tasks(commands.Cog):
 
@@ -25,7 +18,7 @@ class Tasks(commands.Cog):
         task: str
     ):
 
-        add_task(task)
+        await task_service.create_task(task)
 
         await interaction.response.send_message(
             f"✅ Saved:\n**{task}**"
@@ -40,7 +33,7 @@ class Tasks(commands.Cog):
         interaction
     ):
 
-        tasks = get_tasks()
+        tasks = await task_service.get_tasks()
 
         if not tasks:
             await interaction.response.send_message(
@@ -59,17 +52,10 @@ class Tasks(commands.Cog):
         name="done",
         description="Mark a task as completed."
     )
-    async def done(
-        self,
-        interaction,
-        task_id: int
-    ):
-        async def done(self, interaction, task_id: int):
-            print("DONE COMMAND CALLED")
-
-            await interaction.response.send_message("Testing!")
-
-        complete_task(task_id)
+    
+    async def done(self, interaction, task_id: int):
+        # Mark the task completed and notify the user
+        await task_service.complete_task_by_id(task_id)
 
         await interaction.response.send_message(
             f"✅ Task #{task_id} completed!"
@@ -85,7 +71,7 @@ class Tasks(commands.Cog):
         task_id: int
     ):
 
-        delete_task(task_id)
+        await task_service.delete_task_by_id(task_id)
 
         await interaction.response.send_message(
             f"🗑️ Deleted task #{task_id}"
@@ -102,7 +88,10 @@ class Tasks(commands.Cog):
         new_text: str
     ):
 
-        update_task(task_id, new_text)
+        await task_service.edit_task(
+            task_id,
+            new_text
+        )
 
         await interaction.response.send_message(
             f"✏️ Updated task #{task_id}"
@@ -118,7 +107,7 @@ class Tasks(commands.Cog):
         keyword: str
     ):
 
-        tasks = search_tasks(keyword)
+        tasks = await task_service.search_for_tasks(keyword)
 
         if not tasks:
             await interaction.response.send_message(

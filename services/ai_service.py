@@ -24,8 +24,8 @@ Never mention being an AI assistant unless directly asked.
 """
 
 
-def ask(prompt: str) -> str:
-    elapsed = time.time() - start
+async def ask(prompt: str) -> str:
+    
     response = chat(
         model="llama3.2:3b",      # Change if you're using another model
         messages=[
@@ -38,12 +38,25 @@ def ask(prompt: str) -> str:
                 "content": prompt
             }
         ]
+    )
+
+    elapsed = time.perf_counter() - start
 
     await logger.ai(
-        f"🔵 AI\n"
-        f"Prompt took {elapsed:.2f}s"
+        f"""
+        **Model**
+        llama3.2:3b
 
-        )
+        **Time**
+        {elapsed:.2f}s
+
+        **Prompt**
+        ```text
+        {prompt[:300]}
+
+        Response
+        {len(response.message.content)} characters
+        """
     )
 
     return response.message.content
