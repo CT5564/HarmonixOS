@@ -1,0 +1,55 @@
+# This file contains the task service for the bot.
+# It is responsible for handling all task-related logic and database interactions.
+# This file contains the task service for the bot.
+# It is responsible for handling all task-related logic and database interactions.
+# Everything backend related to tasks should be handled here, while the cogs/tasks.py file should only handle the frontend (discord commands).
+
+
+
+import services.database as db
+from services.logger import logger
+
+async def create_task(title: str):
+
+    db.add_task(title)
+
+    await logger.task(
+        f"Created task\n\n{title}"
+    )
+
+
+def get_all_tasks():
+
+    return db.get_tasks()
+
+
+async def complete_task_by_id(task_id: int):
+
+    db.complete_task(task_id)
+
+    await logger.task(
+        f"Completed task #{task_id}"
+    )
+
+
+async def delete_task_by_id(task_id: int):
+
+    db.delete_task(task_id)
+
+    await logger.task(
+        f"Deleted task #{task_id}"
+    )
+
+
+async def edit_task(task_id: int, title: str):
+
+    db.update_task(task_id, title)
+
+    await logger.task(
+        f"Edited task #{task_id}"
+    )
+
+
+def search_for_tasks(keyword: str):
+
+    return db.search_tasks(keyword)

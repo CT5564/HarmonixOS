@@ -1,7 +1,10 @@
+# This File manages the task commands for the bot.
+# Purely frontend, all backend logic is in services/task_service.py
+
 from discord.ext import commands
 from discord import app_commands
 
-from services import task_service
+import services.task_service as task_service
 
 class Tasks(commands.Cog):
 
@@ -33,7 +36,7 @@ class Tasks(commands.Cog):
         interaction
     ):
 
-        tasks = await task_service.get_tasks()
+        tasks = task_service.get_all_tasks()
 
         if not tasks:
             await interaction.response.send_message(
@@ -107,7 +110,7 @@ class Tasks(commands.Cog):
         keyword: str
     ):
 
-        tasks = await task_service.search_for_tasks(keyword)
+        tasks = task_service.search_for_tasks(keyword)
 
         if not tasks:
             await interaction.response.send_message(
