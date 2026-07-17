@@ -58,6 +58,13 @@ class Logger:
             discord.Color.purple()
         )
 
+    async def note(self, message):
+        await self._send(
+            "📝 NOTE",
+            message,
+            discord.Color.orange()
+        )
+
     async def warning(self, message):
         await self._send(
             "🟡 WARNING",

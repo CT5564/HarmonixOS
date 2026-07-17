@@ -14,6 +14,7 @@ def initialize_database():
     with get_connection() as conn:
         cursor = conn.cursor()
 
+        #Task Service Table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS tasks(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +22,15 @@ def initialize_database():
             completed INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             completed_at TIMESTAMP
+        )
+        """)
+
+        #Note Service Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notes(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)
 
@@ -92,6 +102,52 @@ def search_tasks(keyword):
             FROM tasks
             WHERE title LIKE ?
             ORDER BY created_at
+        """, (f"%{keyword}%",))
+
+        return cursor.fetchall()
+    
+
+
+#Notes
+def add_note(content: str):
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "INSERT INTO notes(content) VALUES(?)",
+            (content,)
+        )
+
+def get_notes():
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, content
+            FROM notes
+            ORDER BY created_at DESC
+        """)
+
+        return cursor.fetchall()
+    
+def delete_note(note_id: int):
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "DELETE FROM notes WHERE id = ?",
+            (note_id,)
+        )
+
+async def search_notes(keyword: str):
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, content
+            FROM notes
+            WHERE content LIKE ?
+            ORDER BY created_at DESC
         """, (f"%{keyword}%",))
 
         return cursor.fetchall()

@@ -4,34 +4,42 @@ import time
 
 from services.logger import logger
 
-start = time.time()
+from services.context import build_context
 
 SYSTEM_PROMPT = """
 You are Harmonix.
 
-You are Jake's AI operating system.
+You are an operating system.
 
-Your job is to:
-- help organize work
-- answer questions
-- help with coding
-- help with academics
-- help with church production
-- help with music
-- keep answers concise unless asked otherwise
+You have access to:
 
-Never mention being an AI assistant unless directly asked.
+• Tasks
+• Notes
+• Projects
+
+When answering,
+use the provided context.
+
+Never invent information that is not in the context.
 """
 
 
 async def ask(prompt: str) -> str:
     
+    start = time.time()
+
+    context = build_context()
+    
+    print("=" * 50)
+    print(context)
+    print("=" * 50)
+
     response = chat(
         model="llama3.2:3b",      # Change if you're using another model
         messages=[
             {
                 "role": "system",
-                "content": SYSTEM_PROMPT
+                "content": SYSTEM_PROMPT + "\n\n" + context
             },
             {
                 "role": "user",
@@ -44,6 +52,8 @@ async def ask(prompt: str) -> str:
 
     await logger.ai(
         f"""
+        🤖 AI Request
+
         **Model**
         llama3.2:3b
 
@@ -54,8 +64,13 @@ async def ask(prompt: str) -> str:
         ```text
         {prompt[:300]}
 
-        Response
+        **Response**
         {len(response.message.content)} characters
+        
+        **Context**
+        ```text
+        Context:
+        {len(context)} characters
         """
     )
 
