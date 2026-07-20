@@ -42,20 +42,16 @@ class Tasks(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
-        tasks = task_service.get_all_tasks()
-
+        tasks = await task_service.get_all_tasks()
         if not tasks:
-            await interaction.followup.send(
-                "🎉 No tasks!"
-            )
-            return
+            return "🎉 No tasks."
 
-        message = "# 📅 Today's Tasks\n\n"
+        msg = "# 📋 Tasks\n\n"
 
         for task in tasks:
-            message += f"`#{task[0]}` • {task[1]}\n"
+            msg += f"`#{task[0]}` • {task[1]}\n"
 
-        await interaction.followup.send(message)
+        await interaction.followup.send(msg)
 
     @app_commands.command(
         name="done",

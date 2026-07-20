@@ -73,7 +73,7 @@ DO NOT include any extra text.
 async def extract_task(prompt: str) -> Task:
 
     try:
-
+        print("Extracting data")
         response = await chat(
             model="llama3.2:3b",
             messages=[

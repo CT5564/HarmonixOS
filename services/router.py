@@ -54,7 +54,7 @@ async def classify(message: str) -> Intent:
     """
 
     heuristic = heuristic_route(message)
-
+    print("Heuristic route:", heuristic)
     if heuristic is not None:
         return heuristic
 
@@ -89,14 +89,14 @@ def heuristic_route(message: str) -> Intent | None:
 async def llm_route(message: str) -> Intent:
 
     response = await chat(
-        model="llama3.2:1b",
+        model="qwen2.5:3b",
         messages=[
             {
                 "role": "system",
                 "content": """
 You are an intent classifier.
 
-Return ONLY one of the following labels.
+Return EXACTLY ONE of these labels.
 
 TASK_CREATE
 TASK_QUERY
@@ -104,9 +104,59 @@ NOTE_CREATE
 NOTE_QUERY
 CHAT
 
-Do not explain.
-Do not add punctuation.
-Do not add any other text.
+Definitions
+
+TASK_CREATE
+The user wants to create, remember, or save a task or todo.
+
+TASK_QUERY
+The user wants to view, search, ask about, or manage existing tasks.
+
+NOTE_CREATE
+The user wants to save information as a note.
+
+NOTE_QUERY
+The user wants to retrieve or search notes.
+
+CHAT
+Everything else.
+
+Rules
+
+- Return exactly one label.
+- No explanations.
+- No markdown.
+- No punctuation.
+- No extra words.
+
+Examples
+
+User: Buy milk tomorrow
+TASK_CREATE
+
+User: Finish CMSC machine problem Friday
+TASK_CREATE
+
+User: What are my tasks?
+TASK_QUERY
+
+User: What's due tomorrow?
+TASK_QUERY
+
+User: Save this note: SQLite supports JSON.
+NOTE_CREATE
+
+User: Show my notes.
+NOTE_QUERY
+
+User: How are you?
+CHAT
+
+User: What's the weather?
+CHAT
+
+User: Explain recursion.
+CHAT
 """
             },
             {
@@ -117,7 +167,25 @@ Do not add any other text.
     )
 
     label = response["message"]["content"].strip().upper()
+    VALID_INTENTS = {
+        "TASK_CREATE",
+        "TASK_QUERY",
+        "NOTE_CREATE",
+        "NOTE_QUERY",
+        "CHAT"
+    }
 
+    raw = response["message"]["content"]
+
+    intent = None
+
+    for label in VALID_INTENTS:
+        if label in raw:
+            intent = label
+            break
+
+    if intent is None:
+        intent = "CHAT"
     try:
         return Intent[label]
 

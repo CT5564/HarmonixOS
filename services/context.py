@@ -1,6 +1,6 @@
 # Context Service. Builds the current context for the AI.
 import services.database as db
-from services.memory import retrieve
+from services.memory import build_context
 
 
 def build_task_context():
@@ -11,7 +11,7 @@ def build_note_context():
 
 
 def build_context(prompt: str):
-    memory = retrieve(prompt)
+    memory = build_context(prompt)
 
     tasks = memory["tasks"]
     notes = memory["notes"]

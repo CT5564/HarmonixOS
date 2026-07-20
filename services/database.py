@@ -137,18 +137,31 @@ def update_task(task_id, title):
 
 
 
-def search_tasks(keyword):
+def search_tasks(keyword: str):
     with get_connection() as conn:
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, title
+            SELECT
+                id,
+                title,
+                description,
+                priority,
+                due_date,
+                due_time,
+                project,
+                tags
             FROM tasks
             WHERE
-            title LIKE ?
-            OR description LIKE ?
-            OR project LIKE ?
-        """, (f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"))
+                title LIKE ?
+                OR description LIKE ?
+                OR project LIKE ?
+            LIMIT 5
+        """, (
+            f"%{keyword}%",
+            f"%{keyword}%",
+            f"%{keyword}%"
+        ))
 
         return cursor.fetchall()
     

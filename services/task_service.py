@@ -19,8 +19,8 @@ async def create_task(task: Task):
     )
 
 
-def get_all_tasks():
-
+async def get_all_tasks():
+    print("Getting all tasks")
     return db.get_tasks()
 
 
@@ -51,6 +51,6 @@ async def edit_task(task_id: int, title: str):
     )
 
 
-def search_for_tasks(keyword: str):
+async def search_for_tasks(keyword: str):
 
     return db.search_tasks(keyword)
