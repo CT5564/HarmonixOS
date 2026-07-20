@@ -1,7 +1,10 @@
 #Database Service. Handles all database operations for the bot.
 
 import sqlite3
+import json
 from pathlib import Path
+
+from models.task import Task
 
 DB_PATH = Path("data") / "harmonix.db"
 
@@ -21,9 +24,18 @@ def initialize_database():
         CREATE TABLE IF NOT EXISTS tasks(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            completed INTEGER DEFAULT 0,
+            description TEXT,
+            status TEXT DEFAULT 'todo',
+            priority TEXT,
+            due_date TEXT,
+            due_time TEXT,
+            project TEXT,
+            tags TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            completed_at TIMESTAMP
+            completed_at TIMESTAMP,
+            notion_page_id TEXT,
+            sync_status TEXT DEFAULT 'pending',
+            last_synced TIMESTAMP
         )
         """)
 
@@ -38,24 +50,53 @@ def initialize_database():
 
 
 
-def add_task(title: str) -> None:
+def add_task(task: Task) -> None:
     with get_connection() as conn:
         cursor = conn.cursor()
 
         cursor.execute(
-            "INSERT INTO tasks(title) VALUES(?)",
-            (title,)
+        """
+        INSERT INTO tasks(
+            title,
+            description,
+            status,
+            priority,
+            due_date,
+            due_time,
+            project,
+            tags,
+            notion_page_id
         )
-
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            task.title,
+            task.description,
+            "todo",
+            task.priority,
+            task.due_date,
+            task.due_time,
+            task.project,
+            json.dumps(task.tags or []),
+            None
+        )
+    )
+    
 
 def get_tasks() -> list:
     with get_connection() as conn:
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, title
+            SELECT
+                id,
+                title,
+                priority,
+                due_date,
+                due_time,
+                project
             FROM tasks
-            WHERE completed = 0
+            WHERE status = 'todo'
             ORDER BY created_at
         """)
 
@@ -66,11 +107,12 @@ def complete_task(task_id: int) -> None:
         cursor = conn.cursor()
 
         cursor.execute("""
-            UPDATE tasks
-            SET completed = 1,
-                completed_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        """, (task_id,))
+        UPDATE tasks
+        SET
+            status = 'completed',
+            completed_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (task_id,))
         
 
 def delete_task(task_id):
@@ -102,9 +144,11 @@ def search_tasks(keyword):
         cursor.execute("""
             SELECT id, title
             FROM tasks
-            WHERE title LIKE ?
-            ORDER BY created_at
-        """, (f"%{keyword}%",))
+            WHERE
+            title LIKE ?
+            OR description LIKE ?
+            OR project LIKE ?
+        """, (f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"))
 
         return cursor.fetchall()
     

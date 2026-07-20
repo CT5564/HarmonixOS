@@ -3,7 +3,7 @@
 
 from discord.ext import commands
 from discord import app_commands
-
+from services.entity_extractor import extract_task
 import services.task_service as task_service
 
 class Tasks(commands.Cog):
@@ -20,11 +20,15 @@ class Tasks(commands.Cog):
         interaction,
         task: str
     ):
+        
+        await interaction.response.defer(thinking=True)
 
-        await task_service.create_task(task)
+        entity = await extract_task(task)
 
-        await interaction.response.send_message(
-            f"✅ Saved:\n**{task}**"
+        await task_service.create_task(entity)
+
+        await interaction.followup.send(
+            f"✅ Saved:\n**{entity.title}**"
         )
 
     @app_commands.command(
@@ -35,11 +39,13 @@ class Tasks(commands.Cog):
         self,
         interaction
     ):
+        
+        await interaction.response.defer(thinking=True)
 
         tasks = task_service.get_all_tasks()
 
         if not tasks:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "🎉 No tasks!"
             )
             return
@@ -49,7 +55,7 @@ class Tasks(commands.Cog):
         for task in tasks:
             message += f"`#{task[0]}` • {task[1]}\n"
 
-        await interaction.response.send_message(message)
+        await interaction.followup.send(message)
 
     @app_commands.command(
         name="done",
@@ -57,10 +63,11 @@ class Tasks(commands.Cog):
     )
     
     async def done(self, interaction, task_id: int):
+        await interaction.response.defer(thinking=True)
         # Mark the task completed and notify the user
         await task_service.complete_task_by_id(task_id)
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"✅ Task #{task_id} completed!"
         )
     
@@ -74,9 +81,10 @@ class Tasks(commands.Cog):
         task_id: int
     ):
 
+        await interaction.response.defer(thinking=True)
         await task_service.delete_task_by_id(task_id)
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"🗑️ Deleted task #{task_id}"
         )
 
@@ -91,12 +99,13 @@ class Tasks(commands.Cog):
         new_text: str
     ):
 
+        await interaction.response.defer(thinking=True)
         await task_service.edit_task(
             task_id,
             new_text
         )
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"✏️ Updated task #{task_id}"
         )
 
@@ -110,10 +119,11 @@ class Tasks(commands.Cog):
         keyword: str
     ):
 
+        await interaction.response.defer(thinking=True)
         tasks = task_service.search_for_tasks(keyword)
 
         if not tasks:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "Nothing found."
             )
             return
@@ -123,7 +133,7 @@ class Tasks(commands.Cog):
         for task in tasks:
             msg += f"`#{task[0]}` • {task[1]}\n"
 
-        await interaction.response.send_message(msg)
+        await interaction.followup.send(msg)
 
 async def setup(bot):
     await bot.add_cog(Tasks(bot))

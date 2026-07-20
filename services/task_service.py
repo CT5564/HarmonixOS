@@ -7,14 +7,15 @@
 
 
 import services.database as db
+from models.task import Task
 from services.logger import logger
 
-async def create_task(title: str):
-
-    db.add_task(title)
-
+async def create_task(task: Task):
+    print("Task Service:", task)
+    db.add_task(task)
+    
     await logger.task(
-        f"Created task\n\n{title}"
+        f"Created task\n\n{task.title}"
     )
 
 
