@@ -21,7 +21,7 @@ Do not invent tasks, notes, or projects.
 
 async def ask(prompt: str):
 
-    context = build_context(prompt)
+    context = await build_context(prompt)
     print("Context Built.")
     try:
         print("Sending to AI...")

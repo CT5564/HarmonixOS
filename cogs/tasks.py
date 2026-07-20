@@ -116,7 +116,7 @@ class Tasks(commands.Cog):
     ):
 
         await interaction.response.defer(thinking=True)
-        tasks = task_service.search_for_tasks(keyword)
+        tasks = await task_service.search_for_tasks(keyword)
 
         if not tasks:
             await interaction.followup.send(

@@ -1,8 +1,8 @@
 import services.task_service as task_service
 
-def build_context(query: str) -> str:
+async def build_context(query: str) -> str:
 
-    tasks = task_service.search_for_tasks(query)
+    tasks = await task_service.search_for_tasks(query)
 
     context = []
 
