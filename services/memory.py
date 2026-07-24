@@ -471,22 +471,11 @@ async def retrieve_memory(
                 f"{page['title']}: {e}"
             )
 
-
-            # Keep the page even if content
-            # retrieval fails
-
-            enriched_notion_pages.append(
-                {
-                    "id": page["id"],
-                    "title": page["title"],
-                    "content": ""
-                }
-            )
-
+            continue
 
 
     return {
         "tasks": tasks,
         "notes": notes,
-        "notion_pages": notion_pages
+        "notion_pages": enriched_notion_pages
     }

@@ -32,6 +32,13 @@ async def ask(prompt: str,
         prompt,
         author_name=author_name
     )
+    print(
+        f"[DEBUG] Context type: {type(context)}"
+    )
+
+    print(
+        f"[DEBUG] Context value: {context!r}"
+    )
     print("Context Built.")
     print(context)
     try:
@@ -63,40 +70,39 @@ async def ask(prompt: str,
         )
         raise
 
+    usage = response.get(
+        "usage",
+        {}
+    )
+
     await logger.ai(
-    f"""
+        f"""
     🤖 AI Request
 
     **Model**
-    {response['model']}
-
-    **Python**
-    {response['python_duration']:.2f}s
-
-    **Inference**
-    {response['total_duration']/1e9:.2f}s
-
-    **Load**
-    {response['load_duration']/1e9:.2f}s
-
-    **Prompt Eval**
-    {response['prompt_eval_duration']/1e9:.2f}s
-
-    **Generation**
-    {response['eval_duration']/1e9:.2f}s
-
-    **Prompt Tokens**
-    {response['prompt_eval_count']}
-
-    **Generated Tokens**
-    {response['eval_count']}
+    {response.get('model', 'Unknown')}
 
     **Context**
     {len(context)} chars
 
+    **Prompt Tokens**
+    {usage.get('prompt_tokens', 'Unknown')}
+
+    **Generated Tokens**
+    {usage.get('completion_tokens', 'Unknown')}
+
+    **Total Tokens**
+    {usage.get('total_tokens', 'Unknown')}
+
     **Response**
-    {len(response['message']['content'])} chars
+    {len(response['choices'][0]['message']['content'])} chars
     """
     )
-
-    return response["message"]["content"]
+    
+    return response[
+        "choices"
+    ][0][
+        "message"
+    ][
+        "content"
+    ]
