@@ -412,8 +412,14 @@ async def retrieve_memory(
             )
         )
 
-        notion_results = (
+        page_results = (
             await notion_service.search_pages(
+                keyword
+            )
+        )
+
+        database_results = (
+            await notion_service.search_databases(
                 keyword
             )
         )
@@ -431,11 +437,22 @@ async def retrieve_memory(
                 notes.append(note)
     
         # Prevent duplicate notion pages
-        for page in notion_results:
+        for page in page_results:
 
             if page not in notion_pages:
-                notion_pages.append(page)
 
+                notion_pages.append(
+                    page
+                )
+
+
+        for database in database_results:
+
+            if database not in notion_pages:
+
+                notion_pages.append(
+                    database
+                )
 
     # ============================================================
     # RETRIEVE NOTION PAGE CONTENT
@@ -448,17 +465,28 @@ async def retrieve_memory(
 
         try:
 
-            content = (
-                await notion_service.get_page_content(
-                    page["id"]
+            if page["type"] == "database":
+
+                content = (
+                    await notion_service.get_database_content(
+                        page["id"]
+                    )
                 )
-            )
+
+            else:
+
+                content = (
+                    await notion_service.get_page_content(
+                        page["id"]
+                    )
+                )
 
 
             enriched_notion_pages.append(
                 {
                     "id": page["id"],
                     "title": page["title"],
+                    "type": page["type"],
                     "content": content
                 }
             )

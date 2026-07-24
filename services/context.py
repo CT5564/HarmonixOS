@@ -49,13 +49,19 @@ async def build_context(
     if notion_pages:
 
         context.append(
-            "\n## Relevant Notion Pages\n"
+            "\n## Relevant Notion Knowledge\n"
         )
+
 
         for page in notion_pages:
 
             context.append(
-                f"- {page['title']} (ID: {page['id']} Content: {page['content']})"
+                f"""
+    ### {page['title']}
+    Type: {page['type']}
+
+    {page['content']}
+    """
             )
 
     if not context:

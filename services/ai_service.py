@@ -95,13 +95,11 @@ async def ask(prompt: str,
     {usage.get('total_tokens', 'Unknown')}
 
     **Response**
-    {len(response['choices'][0]['message']['content'])} chars
+    {len(response['message']['content'])} chars
     """
     )
-    
+
     return response[
-        "choices"
-    ][0][
         "message"
     ][
         "content"

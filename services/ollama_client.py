@@ -4,6 +4,7 @@
 import os
 import asyncio
 import time
+from urllib import response
 import requests
 
 from dotenv import load_dotenv
@@ -49,7 +50,7 @@ async def chat(
             },
             timeout=120
         )
-
+        
         response.raise_for_status()
 
         data = response.json()
