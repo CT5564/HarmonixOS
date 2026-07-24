@@ -322,10 +322,18 @@ def extract_keywords(query: str) -> list[str]:
     return keywords
 
 
-async def retrieve_memory(query: str):
+async def retrieve_memory(
+    query: str,
+    author_name: str | None = None
+):
 
     keywords = extract_keywords(query)
-
+    if author_name and author_name.lower() not in [
+        keyword.lower()
+        for keyword in keywords
+    ]:
+        keywords.append(author_name)
+        
     if not keywords:
 
         return {
