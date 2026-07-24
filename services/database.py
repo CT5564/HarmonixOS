@@ -44,7 +44,7 @@ def initialize_database():
         CREATE TABLE IF NOT EXISTS notes(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             content TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             author_id TEXT,
             author_name TEXT
         )""")
@@ -272,9 +272,7 @@ def delete_note(note_id: int):
             (note_id,)
         )
 
-async def search_notes(
-    keyword: str
-):
+async def search_notes(keyword: str):
 
     with get_connection() as conn:
 
@@ -289,11 +287,14 @@ async def search_notes(
                 author_name,
                 created_at
             FROM notes
-            WHERE content LIKE ?
+            WHERE
+                content LIKE ?
+                OR author_name LIKE ?
             ORDER BY created_at DESC
             """,
             (
                 f"%{keyword}%",
+                f"%{keyword}%"
             )
         )
 

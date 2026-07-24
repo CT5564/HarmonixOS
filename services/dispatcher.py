@@ -13,6 +13,8 @@ async def dispatch(
 ):
     
     print(f"Dispatching message: {message}")
+    print(f"Author ID: {author_id}")
+    print(f"Author Name: {author_name}")
 
     intent = await classify(message)
 
@@ -75,7 +77,11 @@ async def dispatch(
                     result = msg
 
             case Intent.CHAT:
-                result = await ai_service.ask(message)
+
+                return await ai_service.ask(
+                    message,
+                    author_name=author_name
+                )
 
             case _:
                 result = "I couldn't determine your intent."

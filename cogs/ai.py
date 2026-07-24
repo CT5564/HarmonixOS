@@ -31,7 +31,14 @@ class AI(commands.Cog):
 
         try:
 
-            answer = await ask(prompt)
+            answer = await ask(
+                prompt,
+                author_name=(
+                    interaction.user.nick
+                    or interaction.user.global_name
+                    or interaction.user.name
+                )
+            )
 
             # Discord messages have a 2000 character limit
             if len(answer) > 1900:

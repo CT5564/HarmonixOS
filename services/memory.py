@@ -324,9 +324,7 @@ def extract_keywords(query: str) -> list[str]:
 
 async def retrieve_memory(query: str):
 
-    keywords = extract_keywords(
-        query
-    )
+    keywords = extract_keywords(query)
 
     if not keywords:
 
@@ -335,10 +333,8 @@ async def retrieve_memory(query: str):
             "notes": []
         }
 
-
     tasks = []
     notes = []
-
 
     # Search each meaningful keyword
     for keyword in keywords:
@@ -355,21 +351,19 @@ async def retrieve_memory(query: str):
             )
         )
 
-
-        # Prevent duplicates
+        # Prevent duplicate tasks
         for task in task_results:
 
             if task not in tasks:
 
                 tasks.append(task)
 
-
+        # Prevent duplicate notes
         for note in note_results:
 
             if note not in notes:
 
                 notes.append(note)
-
 
     return {
         "tasks": tasks,

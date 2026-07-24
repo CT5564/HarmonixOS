@@ -17,17 +17,17 @@ If MEMORY does not contain the answer, search for the answer in your training da
 
 Do not invent tasks, notes, or projects.
 """
-author_id = str(
-    message.author.id
-)
+async def ask(prompt: str,
+    author_name: str | None = None):
+    current_user_context = ""
 
-author_name = (
-    message.author.nick
-    or message.author.global_name
-    or message.author.name
-)
-async def ask(prompt: str):
+    if author_name:
 
+        current_user_context = (
+            f"\n\nCURRENT USER:\n"
+            f"The person currently speaking to you is "
+            f"{author_name}."
+        )
     context = await build_context(prompt)
     print("Context Built.")
     print(context)
@@ -40,6 +40,8 @@ async def ask(prompt: str):
                     "role": "system",
                     "content": (
                         SYSTEM_PROMPT
+                        +"\n\n"
+                        + current_user_context
                         + "\n\n"
                         + "MEMORY:\n"
                         + context
