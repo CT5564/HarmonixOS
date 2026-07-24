@@ -436,6 +436,55 @@ async def retrieve_memory(
             if page not in notion_pages:
                 notion_pages.append(page)
 
+
+    # ============================================================
+    # RETRIEVE NOTION PAGE CONTENT
+    # ============================================================
+
+    enriched_notion_pages = []
+
+
+    for page in notion_pages:
+
+        try:
+
+            content = (
+                await notion_service.get_page_content(
+                    page["id"]
+                )
+            )
+
+
+            enriched_notion_pages.append(
+                {
+                    "id": page["id"],
+                    "title": page["title"],
+                    "content": content
+                }
+            )
+
+
+        except Exception as e:
+
+            print(
+                f"[Notion Error] "
+                f"{page['title']}: {e}"
+            )
+
+
+            # Keep the page even if content
+            # retrieval fails
+
+            enriched_notion_pages.append(
+                {
+                    "id": page["id"],
+                    "title": page["title"],
+                    "content": ""
+                }
+            )
+
+
+
     return {
         "tasks": tasks,
         "notes": notes,

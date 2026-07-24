@@ -55,9 +55,9 @@ async def build_context(
         for page in notion_pages:
 
             context.append(
-                f"- {page['title']} (ID: {page['id']})"
+                f"- {page['title']} (ID: {page['id']} Content: {page['content']})"
             )
-            
+
     if not context:
         return "No relevant memories."
 
