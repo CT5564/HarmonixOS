@@ -43,7 +43,7 @@ async def on_ready():
     await logger.startup(
         f"""
     **Version**
-    0.1.0
+    0.5.0
 
     **Model**
     llama3.2:3b

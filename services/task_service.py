@@ -6,6 +6,8 @@
 
 
 
+from datetime import date
+
 import services.database as db
 from models.task import Task
 from services.logger import logger
@@ -54,3 +56,15 @@ async def edit_task(task_id: int, title: str):
 async def search_for_tasks(keyword: str):
 
     return db.search_tasks(keyword)
+
+async def get_today_tasks():
+
+    today = date.today().isoformat()
+
+    return db.get_today_tasks(today)
+
+async def get_overdue_tasks():
+
+    today = date.today().isoformat()
+
+    return db.get_overdue_tasks(today)

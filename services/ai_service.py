@@ -1,28 +1,36 @@
 # AI Service. Handles all interactions with the AI model.
 
 from services.ollama_client import chat
-from services.memory import build_context
+from services.context import build_context
 from services.logger import logger
 
-MODEL = "llama3.2:3b"
+MODEL = "auto/best-fast"
 
 SYSTEM_PROMPT = """
 You are Harmonix.
 
 You will receive a MEMORY section.
 
-Only use information from MEMORY when answering.
+Primarily use information from MEMORY when answering.
 
-If MEMORY does not contain the answer,
-say you don't know.
+If MEMORY does not contain the answer, search for the answer in your training data or the web.
 
 Do not invent tasks, notes, or projects.
 """
+author_id = str(
+    message.author.id
+)
 
+author_name = (
+    message.author.nick
+    or message.author.global_name
+    or message.author.name
+)
 async def ask(prompt: str):
 
     context = await build_context(prompt)
     print("Context Built.")
+    print(context)
     try:
         print("Sending to AI...")
         response = await chat(
@@ -30,7 +38,12 @@ async def ask(prompt: str):
             messages=[
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT + "\n\n" + context
+                    "content": (
+                        SYSTEM_PROMPT
+                        + "\n\n"
+                        + "MEMORY:\n"
+                        + context
+                    )
                 },
                 {
                     "role": "user",

@@ -45,8 +45,9 @@ def initialize_database():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             content TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
+            author_id TEXT,
+            author_name TEXT
+        )""")
 
 
 
@@ -164,18 +165,91 @@ def search_tasks(keyword: str):
         ))
 
         return cursor.fetchall()
-    
+
+def get_today_tasks(today):
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT
+            id,
+            title,
+            description,
+            priority,
+            due_date,
+            due_time,
+            project,
+            tags,
+            status
+        FROM tasks
+        WHERE due_date = ?
+        AND status != 'completed'
+        ORDER BY
+            due_time IS NULL,
+            due_time,
+            created_at
+        """, (today,))
+
+        return cursor.fetchall()
+
+def get_overdue_tasks(today):
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+        SELECT
+            id,
+            title,
+            description,
+            priority,
+            due_date,
+            due_time,
+            project,
+            tags,
+            status
+        FROM tasks
+        WHERE due_date < ?
+        AND status != 'completed'
+        ORDER BY
+            due_date,
+            due_time
+        """, (today,))
+
+        return cursor.fetchall()
 
 
 #Notes
-def add_note(content: str):
+def add_note(
+    content: str,
+    author_id: str,
+    author_name: str
+):
+
     with get_connection() as conn:
+
         cursor = conn.cursor()
 
         cursor.execute(
-            "INSERT INTO notes(content) VALUES(?)",
-            (content,)
+            """
+            INSERT INTO notes (
+                content,
+                author_id,
+                author_name
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                content,
+                author_id,
+                author_name
+            )
         )
+
+        conn.commit()
 
 def get_notes():
     with get_connection() as conn:
@@ -198,15 +272,29 @@ def delete_note(note_id: int):
             (note_id,)
         )
 
-async def search_notes(keyword: str):
+async def search_notes(
+    keyword: str
+):
+
     with get_connection() as conn:
+
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT id, content
+        cursor.execute(
+            """
+            SELECT
+                id,
+                content,
+                author_id,
+                author_name,
+                created_at
             FROM notes
             WHERE content LIKE ?
             ORDER BY created_at DESC
-        """, (f"%{keyword}%",))
+            """,
+            (
+                f"%{keyword}%",
+            )
+        )
 
         return cursor.fetchall()

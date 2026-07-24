@@ -1,44 +1,83 @@
-# Context Service. Builds the current context for the AI.
-import services.database as db
-from services.memory import build_context
+# Context Service.
+# Builds AI-readable context from Harmonix's memory.
+
+from services.memory import retrieve_memory
 
 
-def build_task_context():
-    ...
+async def build_context(prompt: str) -> str:
 
-def build_note_context():
-    ...
+    # Retrieve relevant memories
+    memory = await retrieve_memory(
+        prompt
+    )
 
+    tasks = memory.get(
+        "tasks",
+        []
+    )
 
-def build_context(prompt: str):
-    memory = build_context(prompt)
-
-    tasks = memory["tasks"]
-    notes = memory["notes"]
+    notes = memory.get(
+        "notes",
+        []
+    )
 
     context = []
 
-    # Tasks
+
+    # ============================================================
+    # RELEVANT TASKS
+    # ============================================================
+
     if tasks:
 
-        context.append("## Relevant Tasks\n")
+        context.append(
+            "## Relevant Tasks"
+        )
 
         for task in tasks:
+
             context.append(
-                f"- {task[1]}"
+                f"""
+Title: {task[1]}
+Description: {task[2]}
+Priority: {task[3]}
+Due Date: {task[4]}
+Due Time: {task[5]}
+Project: {task[6]}
+Tags: {task[7]}
+""".strip()
             )
 
-    # Notes
+
+    # ============================================================
+    # RELEVANT NOTES
+    # ============================================================
+
     if notes:
 
-        context.append("\n## Relevant Notes\n")
+        context.append(
+            "## Relevant Notes"
+        )
 
         for note in notes:
+
             context.append(
-                f"- {note[1]}"
+                f"""
+Note ID: {note[0]}
+Content: {note[1]}
+""".strip()
             )
 
+
+    # ============================================================
+    # NO MEMORY
+    # ============================================================
+
     if not context:
+
         return "No relevant memories."
 
-    return "\n".join(context)
+
+    return "\n\n".join(
+        context
+    )

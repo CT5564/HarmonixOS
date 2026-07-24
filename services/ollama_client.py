@@ -1,39 +1,47 @@
-#Ollama Client Service
-#Ollama settings are defined here (?)
+# AI Client
+# Sends AI requests through OmniRoute.
 
-import requests
+import os
 import asyncio
 import time
-import json
+import requests
 
-def ollama_online():
-    try:
-        response = requests.get(
-            "http://localhost:11434/api/tags",
-            timeout=2
-        )
+from dotenv import load_dotenv
 
-        response.raise_for_status()
+load_dotenv()
 
-        return True
-    except Exception as e:
-        print(f"❌ Ollama check failed: {e}")
-        return False
-    
+OMNIROUTE_URL = os.getenv(
+    "OMNIROUTE_URL",
+    "http://localhost:20128/v1/chat/completions"
+)
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
+OMNIROUTE_API_KEY = os.getenv(
+    "OMNIROUTE_API_KEY"
+)
 
 
-async def chat(model: str, messages: list) -> dict:
-    """
-    Send a chat request to Ollama.
-    Returns the full JSON response.
-    """
-    print("✅ Ollama online" if ollama_online() else "❌ Ollama offline")
+async def chat(
+    model: str,
+    messages: list
+) -> dict:
+
     def request():
-            
+
+        start_time = time.perf_counter()
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        # Only add API key if one is configured.
+        if OMNIROUTE_API_KEY:
+            headers["Authorization"] = (
+                f"Bearer {OMNIROUTE_API_KEY}"
+            )
+
         response = requests.post(
-            OLLAMA_URL,
+            OMNIROUTE_URL,
+            headers=headers,
             json={
                 "model": model,
                 "messages": messages,
@@ -44,18 +52,60 @@ async def chat(model: str, messages: list) -> dict:
 
         response.raise_for_status()
 
-        return response.json()
+        data = response.json()
 
-    start = time.perf_counter()
+        elapsed = time.perf_counter() - start_time
 
-    data = await asyncio.to_thread(request)
+        return data, elapsed
 
-    elapsed = time.perf_counter() - start
+    data, elapsed = await asyncio.to_thread(
+        request
+    )
 
-    data["python_duration"] = elapsed
+    # OmniRoute uses OpenAI-compatible responses.
 
-    print(json.dumps(data, indent=4))
+    content = (
+        data["choices"][0]
+        ["message"]
+        ["content"]
+    )
 
-    return data
+    return {
+        "model": data.get(
+            "model",
+            model
+        ),
 
-    
+        "message": {
+            "role": "assistant",
+            "content": content
+        },
+
+        # OmniRoute timing
+        "python_duration": elapsed,
+
+        # These existed in the old Ollama response.
+        # Keep them so the rest of Harmonix
+        # doesn't break.
+
+        "total_duration": 0,
+        "load_duration": 0,
+        "prompt_eval_duration": 0,
+        "eval_duration": 0,
+
+        "prompt_eval_count": data.get(
+            "usage",
+            {}
+        ).get(
+            "prompt_tokens",
+            0
+        ),
+
+        "eval_count": data.get(
+            "usage",
+            {}
+        ).get(
+            "completion_tokens",
+            0
+        )
+    }

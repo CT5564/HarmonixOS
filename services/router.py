@@ -47,6 +47,16 @@ NOTE_STARTS = [
     "idea",
 ]
 
+CHAT_STARTS = [
+    "Harmonix",
+    "Hey Harmonix",
+    "Hello Harmonix",
+    "Hi Harmonix",
+    "Harmonix,",
+    "Harmonix.",
+    "Harmonix!",
+]
+
 
 async def classify(message: str) -> Intent:
     """
@@ -82,6 +92,13 @@ def heuristic_route(message: str) -> Intent | None:
         and any(word in lower for word in TASK_QUERY_WORDS)
     ):
         return Intent.TASK_QUERY
+    
+    # Chat lookup
+
+    if (
+        any(lower.startswith(word.lower()) for word in CHAT_STARTS)
+    ):
+        return Intent.CHAT
 
     return None
 
@@ -89,7 +106,7 @@ def heuristic_route(message: str) -> Intent | None:
 async def llm_route(message: str) -> Intent:
 
     response = await chat(
-        model="qwen2.5:3b",
+        model="auto/best-reasoning",
         messages=[
             {
                 "role": "system",

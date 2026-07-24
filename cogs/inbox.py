@@ -23,7 +23,15 @@ class Inbox(commands.Cog):
 
         await interaction.response.defer()
 
-        response = await dispatch(message)
+        response = await dispatch(
+            message,
+            author_id=str(interaction.user.id),
+            author_name=(
+                interaction.user.nick
+                or interaction.user.global_name
+                or interaction.user.name
+            )
+        )
 
         await interaction.followup.send(response)
     # Message listener (future primary interface)

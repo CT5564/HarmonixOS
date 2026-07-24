@@ -4,9 +4,14 @@
 from services.router import classify, Intent
 from services import task_service, note_service, ai_service
 from services.logger import logger
+from services.entity_extractor import extract_task
 
-async def dispatch(message: str):
-
+async def dispatch(
+    message: str,
+    author_id: str = None,
+    author_name: str = None
+):
+    
     print(f"Dispatching message: {message}")
 
     intent = await classify(message)
@@ -30,11 +35,12 @@ async def dispatch(message: str):
         match intent:
 
             case Intent.TASK_CREATE:
-                await task_service.create_task(message)
-                result = "✅ Task created."
+                entity = await extract_task(message)
+                await task_service.create_task(entity)
+                return f"✅ Task created: **{entity.title}**"
 
             case Intent.TASK_QUERY:
-                tasks = await task_service.get_tasks()
+                tasks = await task_service.get_all_tasks()
 
                 if not tasks:
                     result = "🎉 No tasks."
@@ -47,7 +53,11 @@ async def dispatch(message: str):
                     result = msg
 
             case Intent.NOTE_CREATE:
-                await note_service.create_note(message)
+                await note_service.create_note(
+                    message,
+                    author_id,
+                    author_name
+)
                 result = "📝 Note saved."
 
             case Intent.NOTE_QUERY:
