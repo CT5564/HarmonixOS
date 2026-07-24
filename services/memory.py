@@ -2,9 +2,11 @@ import re
 
 import services.task_service as task_service
 import services.note_service as note_service
-
+import services.notion_service as notion_service
 
 STOP_WORDS = {
+
+"harmonix",
     # ============================================================
     # ARTICLES
     # ============================================================
@@ -304,6 +306,42 @@ STOP_WORDS = {
     "no",
 }
 
+PERSONAL_TERMS = {
+    "i",
+    "me",
+    "my",
+    "mine",
+    "myself",
+    "myself",
+    "about me",
+    "my project",
+    "my projects",
+    "my task",
+    "my tasks",
+    "my note",
+    "my notes",
+    "my name",
+}
+
+def is_personal_query(query: str) -> bool:
+
+    words = set(
+        re.findall(
+            r"\b[\w'-]+\b",
+            query.lower()
+        )
+    )
+
+    return bool(
+        words.intersection({
+            "i",
+            "me",
+            "my",
+            "mine",
+            "myself"
+        })
+    )
+
 
 def extract_keywords(query: str) -> list[str]:
 
@@ -328,12 +366,23 @@ async def retrieve_memory(
 ):
 
     keywords = extract_keywords(query)
-    if author_name and author_name.lower() not in [
-        keyword.lower()
-        for keyword in keywords
-    ]:
-        keywords.append(author_name)
-        
+
+    # Only search the current user's name
+    # when the query is personal
+    if (
+        author_name
+        and is_personal_query(query)
+    ):
+
+        if not any(
+            keyword.lower() == author_name.lower()
+            for keyword in keywords
+        ):
+
+            keywords.append(author_name)
+
+
+    # No searchable terms
     if not keywords:
 
         return {
@@ -343,6 +392,10 @@ async def retrieve_memory(
 
     tasks = []
     notes = []
+    notion_pages = []
+    print(
+        f"Extracted memory keywords: {keywords}"
+    )
 
     # Search each meaningful keyword
     for keyword in keywords:
@@ -359,21 +412,32 @@ async def retrieve_memory(
             )
         )
 
+        notion_results = (
+            await notion_service.search_pages(
+                keyword
+            )
+        )
+
         # Prevent duplicate tasks
         for task in task_results:
 
             if task not in tasks:
-
                 tasks.append(task)
 
         # Prevent duplicate notes
         for note in note_results:
 
             if note not in notes:
-
                 notes.append(note)
+    
+        # Prevent duplicate notion pages
+        for page in notion_results:
+
+            if page not in notion_pages:
+                notion_pages.append(page)
 
     return {
         "tasks": tasks,
-        "notes": notes
+        "notes": notes,
+        "notion_pages": notion_pages
     }

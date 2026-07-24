@@ -28,7 +28,10 @@ async def ask(prompt: str,
             f"The person currently speaking to you is "
             f"{author_name}."
         )
-    context = await build_context(prompt)
+    context = await build_context(
+        prompt,
+        author_name=author_name
+    )
     print("Context Built.")
     print(context)
     try:

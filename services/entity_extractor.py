@@ -1,14 +1,20 @@
 import json
-from datetime import date
 
 from models.task import Task
 from services.ollama_client import chat
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+today = datetime.now(
+    ZoneInfo("Asia/Manila")
+).date()
 
 SYSTEM_PROMPT = f"""
 You extract task information.
 
 Return ONLY valid JSON.
+Today's date is {today}.
 
 Rules:
 

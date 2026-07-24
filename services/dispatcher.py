@@ -77,11 +77,14 @@ async def dispatch(
                     result = msg
 
             case Intent.CHAT:
-
+                print(
+                    f"[Dispatcher] Author: {author_name}"
+                )
                 return await ai_service.ask(
                     message,
                     author_name=author_name
                 )
+                
 
             case _:
                 result = "I couldn't determine your intent."

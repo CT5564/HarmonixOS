@@ -3,81 +3,62 @@
 
 from services.memory import retrieve_memory
 
+async def build_context(
+    prompt: str,
+    author_name: str | None = None
+):
 
-async def build_context(prompt: str) -> str:
-
-    # Retrieve relevant memories
     memory = await retrieve_memory(
-        prompt
+        prompt,
+        author_name=author_name
     )
 
-    tasks = memory.get(
-        "tasks",
-        []
-    )
-
-    notes = memory.get(
-        "notes",
-        []
-    )
+    tasks = memory["tasks"]
+    notes = memory["notes"]
+    notion_pages = memory["notion_pages"]
 
     context = []
 
-
-    # ============================================================
-    # RELEVANT TASKS
-    # ============================================================
-
+    # Tasks
     if tasks:
 
         context.append(
-            "## Relevant Tasks"
+            "## Relevant Tasks\n"
         )
 
         for task in tasks:
 
             context.append(
-                f"""
-Title: {task[1]}
-Description: {task[2]}
-Priority: {task[3]}
-Due Date: {task[4]}
-Due Time: {task[5]}
-Project: {task[6]}
-Tags: {task[7]}
-""".strip()
+                f"- {task[1]}"
             )
 
-
-    # ============================================================
-    # RELEVANT NOTES
-    # ============================================================
-
+    # Notes
     if notes:
 
         context.append(
-            "## Relevant Notes"
+            "\n## Relevant Notes\n"
         )
 
         for note in notes:
 
             context.append(
-                f"""
-Note ID: {note[0]}
-Content: {note[1]}
-""".strip()
+                f"- {note[1]}"
             )
+    # Notion Pages
 
+    if notion_pages:
 
-    # ============================================================
-    # NO MEMORY
-    # ============================================================
+        context.append(
+            "\n## Relevant Notion Pages\n"
+        )
 
+        for page in notion_pages:
+
+            context.append(
+                f"- {page['title']} (ID: {page['id']})"
+            )
+            
     if not context:
-
         return "No relevant memories."
 
-
-    return "\n\n".join(
-        context
-    )
+    return "\n".join(context)
