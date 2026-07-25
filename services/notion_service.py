@@ -298,17 +298,6 @@ async def search_databases(
         []
     ):
 
-        print(
-            "\n========== SEARCH RESULT =========="
-        )
-
-        print(
-            item
-        )
-
-        print(
-            "===================================\n"
-        )
 
 
         title = extract_database_title(

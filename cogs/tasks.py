@@ -35,7 +35,12 @@ class Tasks(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
-        entity = await extract_task(task)
+        author_id = str(interaction.user.id)
+
+        entity = await extract_task(
+            task,
+            author_id=author_id
+        )
 
         await task_service.create_task(entity)
 
@@ -43,71 +48,7 @@ class Tasks(commands.Cog):
             f"✅ Saved:\n**{entity.title}**"
         )
 
-    @app_commands.command(
-        name="today",
-        description="Show today's tasks."
-    )
-    async def today(self, interaction):
-
-        today_tasks = await task_service.get_today_tasks()
-        overdue_tasks = await task_service.get_overdue_tasks()
-
-        if not today_tasks and not overdue_tasks:
-
-            await interaction.response.send_message(
-                "🎉 You're all caught up!"
-            )
-
-            return
-
-        message = "📅 **Today's Tasks**\n\n"
-
-        # --------------------------------------------------------
-        # OVERDUE
-        # --------------------------------------------------------
-
-        if overdue_tasks:
-
-            message += "🔴 **OVERDUE**\n\n"
-
-            for task in overdue_tasks:
-
-                message += (
-                    f"`#{task[0]}` • **{task[1]}**\n"
-                    f"   📅 Due: {task[4]}\n"
-                )
-
-                if task[3]:
-                    message += f"   ⚡ Priority: {task[3]}\n"
-
-                message += "\n"
-
-        # --------------------------------------------------------
-        # TODAY
-        # --------------------------------------------------------
-
-        if today_tasks:
-
-            message += "🟡 **DUE TODAY**\n\n"
-
-            for task in today_tasks:
-
-                message += (
-                    f"`#{task[0]}` • **{task[1]}**\n"
-                )
-
-                if task[5]:
-                    message += f"   ⏰ {task[5]}\n"
-
-                if task[3]:
-                    message += f"   ⚡ Priority: {task[3]}\n"
-
-                if task[6]:
-                    message += f"   📂 {task[6]}\n"
-
-                message += "\n"
-
-        await interaction.response.send_message(message)
+    
 
     @app_commands.command(
         name="done",
@@ -117,7 +58,12 @@ class Tasks(commands.Cog):
     async def done(self, interaction, task_id: int):
         await interaction.response.defer(thinking=True)
         # Mark the task completed and notify the user
-        await task_service.complete_task_by_id(task_id)
+        author_id = str(interaction.user.id)
+
+        await task_service.complete_task_by_id(
+            task_id,
+            author_id
+        )
 
         await interaction.followup.send(
             f"✅ Task #{task_id} completed!"
@@ -134,7 +80,12 @@ class Tasks(commands.Cog):
     ):
 
         await interaction.response.defer(thinking=True)
-        await task_service.delete_task_by_id(task_id)
+        author_id = str(interaction.user.id)
+
+        await task_service.delete_task_by_id(
+            task_id,
+            author_id
+        )
 
         await interaction.followup.send(
             f"🗑️ Deleted task #{task_id}"
@@ -152,8 +103,11 @@ class Tasks(commands.Cog):
     ):
 
         await interaction.response.defer(thinking=True)
+        author_id = str(interaction.user.id)
+
         await task_service.edit_task(
             task_id,
+            author_id,
             new_text
         )
 
@@ -172,7 +126,12 @@ class Tasks(commands.Cog):
     ):
 
         await interaction.response.defer(thinking=True)
-        tasks = await task_service.search_for_tasks(keyword)
+        author_id = str(interaction.user.id)
+
+        tasks = await task_service.search_for_tasks(
+            author_id,
+            keyword
+        )
 
         if not tasks:
             await interaction.followup.send(
@@ -202,12 +161,18 @@ class Tasks(commands.Cog):
     # TODAY MESSAGE FORMATTER
     # ============================================================
 
-    async def build_today_message(self):
+    async def build_today_message(
+        self,
+        author_id: str
+    ):
 
-        # Get tasks
-        today_tasks = await task_service.get_today_tasks()
+        today_tasks = await task_service.get_today_tasks(
+            author_id
+        )
 
-        overdue_tasks = await task_service.get_overdue_tasks()
+        overdue_tasks = await task_service.get_overdue_tasks(
+            author_id
+        )
 
 
         # Start message
@@ -316,7 +281,13 @@ class Tasks(commands.Cog):
 
         try:
 
-            message = await self.build_today_message()
+            author_id = str(
+                interaction.user.id
+            )
+
+            message = await self.build_today_message(
+                author_id
+            )
 
             await interaction.followup.send(
                 message

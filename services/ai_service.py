@@ -24,7 +24,7 @@ async def ask(
 ):
 
     #Phase 1: Context
-    print("[AI] Building user context...")
+    print("[AI] Phase 1: Building user context...")
 
     current_user_context = ""
     

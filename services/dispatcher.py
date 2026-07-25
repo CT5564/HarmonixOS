@@ -5,7 +5,7 @@ from services.router import classify, Intent
 from services import task_service, note_service, ai_service
 from services.logger import logger
 from services.entity_extractor import extract_task
-
+from services.project_service import get_project_names
 async def dispatch(
     message: str,
     author_id: str = None,
@@ -37,7 +37,13 @@ async def dispatch(
         match intent:
 
             case Intent.TASK_CREATE:
-                entity = await extract_task(message, author_id)
+                projects = await get_project_names()
+
+                entity = await extract_task(
+                    task,
+                    author_id,
+                    projects
+                )
                 await task_service.create_task(entity)
                 return f"✅ Task created: **{entity.title}**"
 

@@ -44,7 +44,7 @@ Rules:
   or null.
 
 - project:
-  Return null if unknown.
+  A list will be sent at the buttom of this message. Return null if unknown.
 
 - tags:
   Array of strings.
@@ -75,12 +75,16 @@ Schema:
 DO NOT explain anything.
 DO NOT wrap the JSON in markdown.
 DO NOT include any extra text.
+
+Possible Projects:
+
 """
 
 
 async def extract_task(
     prompt: str,
-    author_id: str
+    author_id: str,
+    projects: list[str]
 ) -> Task:
 
     try:
@@ -88,13 +92,16 @@ async def extract_task(
         print(
             f"Extracting data for user: {author_id}"
         )
-
+        PROJECT_LIST = "\n".join(
+            f"- {project}"
+            for project in projects
+        )
         response = await chat(
             model="auto/best-reasoning",
             messages=[
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT
+                    "content": SYSTEM_PROMPT + PROJECT_LIST
                 },
                 {
                     "role": "user",

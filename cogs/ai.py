@@ -99,7 +99,7 @@ class AI(commands.Cog):
         if not content:
             return
 
-
+        
         try:
 
             # Show typing indicator
