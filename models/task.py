@@ -1,13 +1,16 @@
-from dataclasses import dataclass
 from typing import Optional
+from dataclasses import dataclass, field
 
 
 @dataclass
 class Task:
+    author_id: str
     title: str
-    description: Optional[str] = None
-    due_date: Optional[str] = None
-    due_time: Optional[str] = None
-    priority: Optional[str] = None
-    project: Optional[str] = None
-    tags: list[str] | None = None
+    description: str | None = None
+    priority: str | None = None
+    due_date: str | None = None
+    due_time: str | None = None
+    project: str | None = None
+    tags: list[str] = field(
+        default_factory=list
+    )

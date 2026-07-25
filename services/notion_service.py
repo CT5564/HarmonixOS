@@ -2,7 +2,21 @@
 #
 # Handles searching and reading Notion pages,
 # databases, database entries, and nested blocks.
+import os
+import requests
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+NOTION_TOKEN = os.getenv(
+    "NOTION_TOKEN"
+)
+
+NOTION_VERSION = os.getenv(
+    "NOTION_VERSION",
+    "2025-09-03"
+)
 from services.notion_client import notion
 
 
@@ -272,8 +286,9 @@ async def search_databases(
         query=keyword,
         filter={
             "property": "object",
-            "value": "database"
-        }
+            "value": "data_source"
+        },
+        in_trash=False
     )
 
     results = []
@@ -283,39 +298,50 @@ async def search_databases(
         []
     ):
 
+        print(
+            "\n========== SEARCH RESULT =========="
+        )
+
+        print(
+            item
+        )
+
+        print(
+            "===================================\n"
+        )
+
+
         title = extract_database_title(
             item
         )
+
 
         results.append(
             {
                 "id": item["id"],
                 "title": title,
-                "type": "database"
+                "type": "data_source"
             }
         )
 
+
     return results
-
-
 # ============================================================
-# QUERY DATABASE
+# QUERY DATABASE / DATA SOURCE
 # ============================================================
 
-async def query_database(
-    database_id: str
+async def query_data_source(
+    data_source_id: str
 ):
 
-    response = notion.databases.query(
-        database_id=database_id
+    response = notion.data_sources.query(
+        data_source_id=data_source_id
     )
-
 
     return response.get(
         "results",
         []
     )
-
 
 # ============================================================
 # DATABASE PROPERTY EXTRACTION
@@ -526,16 +552,14 @@ def extract_database_properties(
 # ============================================================
 
 async def get_database_content(
-    database_id: str
+    data_source_id: str
 ):
 
-    entries = await query_database(
-        database_id
+    entries = await query_data_source(
+        data_source_id
     )
 
-
     content = []
-
 
     for entry in entries:
 
@@ -543,25 +567,17 @@ async def get_database_content(
             entry
         )
 
-
-        properties = (
-            extract_database_properties(
-                entry
-            )
+        properties = extract_database_properties(
+            entry
         )
 
-
-        page_content = (
-            await get_page_content(
-                entry["id"]
-            )
+        page_content = await get_page_content(
+            entry["id"]
         )
-
 
         entry_text = (
             f"Entry: {title}\n"
         )
-
 
         if properties:
 
@@ -570,7 +586,6 @@ async def get_database_content(
                 f"{properties}\n"
             )
 
-
         if page_content:
 
             entry_text += (
@@ -578,16 +593,13 @@ async def get_database_content(
                 f"{page_content}\n"
             )
 
-
         content.append(
             entry_text
         )
 
-
     return "\n\n".join(
         content
     )
-
 def extract_database_title(
     database: dict
 ) -> str:

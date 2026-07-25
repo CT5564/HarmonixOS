@@ -6,9 +6,11 @@ from services.ollama_client import chat
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+
 today = datetime.now(
     ZoneInfo("Asia/Manila")
 ).date()
+
 
 SYSTEM_PROMPT = f"""
 You extract task information.
@@ -19,33 +21,33 @@ Today's date is {today}.
 Rules:
 
 - title:
-    The actual task name.
-    Do NOT include dates or times.
+  The actual task name.
+  Do NOT include dates or times.
 
 - description:
-    Extra details only.
-    If none, return null.
+  Extra details only.
+  If none, return null.
 
 - due_date:
-    Convert relative dates into YYYY-MM-DD.
-    If user does not specify a date, return tomorrow's date.
+  Convert relative dates into YYYY-MM-DD.
+  If user does not specify a date, return tomorrow's date.
 
 - due_time:
-    Convert to 24-hour HH:MM format.
-    If user does not specify a time, return 23:59.
+  Convert to 24-hour HH:MM format.
+  If user does not specify a time, return 23:59.
 
 - priority:
-    Only one of:
-    low
-    medium
-    high
-    or null.
+  Only one of:
+  low
+  medium
+  high
+  or null.
 
 - project:
-    Return null if unknown.
+  Return null if unknown.
 
 - tags:
-    Array of strings.
+  Array of strings.
 
 If the user does not explicitly specify:
 
@@ -59,15 +61,15 @@ Do not guess.
 
 Return ONLY JSON.
 
-Schema: 
+Schema:
 {{
-    "title": "",
-    "description": "",
-    "due_date": "",
-    "due_time": "",
-    "priority": "",
-    "project": "",
-    "tags": []
+"title": "",
+"description": "",
+"due_date": "",
+"due_time": "",
+"priority": "",
+"project": "",
+"tags": []
 }}
 
 DO NOT explain anything.
@@ -76,10 +78,17 @@ DO NOT include any extra text.
 """
 
 
-async def extract_task(prompt: str) -> Task:
+async def extract_task(
+    prompt: str,
+    author_id: str
+) -> Task:
 
     try:
-        print("Extracting data")
+
+        print(
+            f"Extracting data for user: {author_id}"
+        )
+
         response = await chat(
             model="auto/best-reasoning",
             messages=[
@@ -94,24 +103,62 @@ async def extract_task(prompt: str) -> Task:
             ]
         )
 
-        raw = response["message"]["content"].strip()
 
-        data = json.loads(raw)
+        raw = (
+            response[
+                "message"
+            ][
+                "content"
+            ].strip()
+        )
+
+
+        data = json.loads(
+            raw
+        )
+
 
         return Task(
-            title=data.get("title") or prompt,
-            description=data.get("description"),
-            due_date=data.get("due_date"),
-            due_time=data.get("due_time"),
-            priority=data.get("priority"),
-            project=data.get("project"),
-            tags=data.get("tags", [])
+            author_id=author_id,
+            title=(
+                data.get(
+                    "title"
+                )
+                or prompt
+            ),
+            description=data.get(
+                "description"
+            ),
+            due_date=data.get(
+                "due_date"
+            ),
+            due_time=data.get(
+                "due_time"
+            ),
+            priority=data.get(
+                "priority"
+            ),
+            project=data.get(
+                "project"
+            ),
+            tags=data.get(
+                "tags",
+                []
+            )
         )
+
 
     except Exception as e:
 
-        print(f"[Entity Extractor] {e}")
+        print(
+            f"[Entity Extractor] {e}"
+        )
+
+
+        # Fallback task must also
+        # preserve the user ID.
 
         return Task(
+            author_id=author_id,
             title=prompt
         )

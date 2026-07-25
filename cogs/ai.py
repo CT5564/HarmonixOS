@@ -33,6 +33,7 @@ class AI(commands.Cog):
 
             answer = await ask(
                 prompt,
+                author_id=str(interaction.user.id),
                 author_name=(
                     interaction.user.nick
                     or interaction.user.global_name

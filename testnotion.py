@@ -1,37 +1,35 @@
-import asyncio
-
 from services.notion_service import (
-    get_page_content
+    get_database_content
 )
 
-
-PAGE_ID = "20698e489e2b809dbc08f4633b69e718"
+import asyncio
 
 
 async def main():
 
-    try:
+    database_id = (
+        "20798e48-9e2b-80d4-87df-db961c0249df"
+    )
 
-        content = await get_page_content(
-            PAGE_ID
-        )
+    print(
+        "🔎 Querying database..."
+    )
 
-        print(
-            "✅ Page content:\n"
-        )
+    content = await get_database_content(
+        database_id
+    )
 
-        print(content)
+    print(
+        "\n========== DATABASE CONTENT ==========\n"
+    )
+
+    print(
+        content
+    )
+
+    print(
+        "\n======================================"
+    )
 
 
-    except Exception as e:
-
-        print(
-            "❌ Failed to retrieve page"
-        )
-
-        print(e)
-
-
-asyncio.run(
-    main()
-)
+asyncio.run(main())

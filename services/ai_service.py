@@ -17,8 +17,11 @@ If MEMORY does not contain the answer, search for the answer in your training da
 
 Do not invent tasks, notes, or projects.
 """
-async def ask(prompt: str,
-    author_name: str | None = None):
+async def ask(
+    prompt: str,
+    author_id: str | None = None,
+    author_name: str | None = None
+):
     current_user_context = ""
 
     if author_name:
@@ -30,6 +33,7 @@ async def ask(prompt: str,
         )
     context = await build_context(
         prompt,
+        author_id=author_id,
         author_name=author_name
     )
     print(

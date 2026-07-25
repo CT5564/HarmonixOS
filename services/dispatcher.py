@@ -37,12 +37,12 @@ async def dispatch(
         match intent:
 
             case Intent.TASK_CREATE:
-                entity = await extract_task(message)
+                entity = await extract_task(message, author_id)
                 await task_service.create_task(entity)
                 return f"✅ Task created: **{entity.title}**"
 
             case Intent.TASK_QUERY:
-                tasks = await task_service.get_all_tasks()
+                tasks = await task_service.get_all_tasks(author_id)
 
                 if not tasks:
                     result = "🎉 No tasks."
@@ -82,6 +82,7 @@ async def dispatch(
                 )
                 return await ai_service.ask(
                     message,
+                    author_id,
                     author_name=author_name
                 )
                 
