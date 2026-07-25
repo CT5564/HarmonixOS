@@ -362,7 +362,9 @@ def extract_keywords(query: str) -> list[str]:
 
 async def retrieve_memory(
     query: str,
-    author_name: str | None = None
+    author_name: str | None = None,
+    author_id: str | None = None
+
 ):
 
     keywords = extract_keywords(query)
@@ -402,6 +404,7 @@ async def retrieve_memory(
 
         task_results = (
             await task_service.search_for_tasks(
+                author_id,
                 keyword
             )
         )

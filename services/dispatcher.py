@@ -82,7 +82,7 @@ async def dispatch(
                 )
                 return await ai_service.ask(
                     message,
-                    author_id,
+                    author_id=author_id,
                     author_name=author_name
                 )
                 
