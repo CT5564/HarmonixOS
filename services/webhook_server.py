@@ -15,7 +15,10 @@ from aiohttp import web
 
 from config import NOTION_WEBHOOK_SECRET
 from services import sync_service
+from services.log import get_log
 import services.database as db
+
+log = get_log(__name__)
 
 
 # ============================================================
@@ -69,10 +72,7 @@ async def handle_webhook(request):
 
     if not verify_signature(body, signature):
 
-        print(
-            "[Webhook] Invalid signature. "
-            "Rejecting."
-        )
+        log.error("Invalid signature. Rejecting.")
 
         return web.json_response(
             {"error": "invalid signature"},
@@ -102,14 +102,10 @@ async def handle_webhook(request):
 
         token = payload["verification_token"]
 
-        print(
-            f"[Webhook] Received handshake. "
-            f"Token: {token}"
-        )
-        print(
-            f"[Webhook] Paste this token in "
-            f"Notion integration settings to "
-            f"verify."
+        log.info(f"Received handshake. Token: {token}")
+        log.info(
+            "Paste this token in Notion integration "
+            "settings to verify."
         )
 
         return web.json_response(
@@ -125,10 +121,7 @@ async def handle_webhook(request):
     page_id = entity.get("id", "")
     entity_type = entity.get("type", "")
 
-    print(
-        f"[Webhook] Event: {event_type} "
-        f"→ {entity_type} {page_id}"
-    )
+    log.info(f"Event: {event_type} → {entity_type} {page_id}")
 
     # Only handle page events in our tasks DB
     if entity_type != "page":
@@ -150,10 +143,7 @@ async def handle_webhook(request):
             page_id
         )
 
-        print(
-            f"[Webhook] Soft-deleted local task "
-            f"for page {page_id}"
-        )
+        log.info(f"Soft-deleted local task for page {page_id}")
 
     elif event_type == "page.undeleted":
 
@@ -165,10 +155,7 @@ async def handle_webhook(request):
             page_id
         )
 
-        print(
-            f"[Webhook] Restored local task "
-            f"for page {page_id}"
-        )
+        log.info(f"Restored local task for page {page_id}")
 
     return web.json_response({"ok": True})
 
@@ -221,9 +208,6 @@ async def start_server(port: int = 8080):
 
     await site.start()
 
-    print(
-        f"[Webhook] Server running on "
-        f"port {port}"
-    )
+    log.info(f"Server running on port {port}")
 
     return runner

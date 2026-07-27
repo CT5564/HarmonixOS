@@ -17,11 +17,15 @@ from services.codebase_service import (
 from agents.plan import plan_agent
 from agents.build import build_agent
 
+from services.log import get_log
+log = get_log(__name__)
+
 
 class AI(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self._seen_messages: set[int] = set()
 
 
     # ============================================================
@@ -63,7 +67,7 @@ class AI(commands.Cog):
                 "❌ Something went wrong."
             )
 
-            print(f"[AI Error] {e}")
+            log.error(f"AI error: {e}")
 
 
     # ============================================================
@@ -107,7 +111,7 @@ class AI(commands.Cog):
                 "❌ Failed to create plan."
             )
 
-            print(f"[Plan Error] {e}")
+            log.error(f"Plan error: {e}")
 
 
     # ============================================================
@@ -170,7 +174,7 @@ class AI(commands.Cog):
                 "❌ Build failed."
             )
 
-            print(f"[Build Error] {e}")
+            log.error(f"Build error: {e}")
 
 
     # ============================================================
@@ -210,7 +214,7 @@ class AI(commands.Cog):
                 "❌ Error searching the codebase."
             )
 
-            print(f"[Code Search Error] {e}")
+            log.error(f"Code search error: {e}")
 
 
     # ============================================================
@@ -244,7 +248,7 @@ class AI(commands.Cog):
                 "❌ Error reading that file."
             )
 
-            print(f"[File Read Error] {e}")
+            log.error(f"File read error: {e}")
 
 
     # ============================================================
@@ -256,6 +260,15 @@ class AI(commands.Cog):
 
         if message.author.bot:
             return
+
+        if message.id in self._seen_messages:
+            return
+        self._seen_messages.add(message.id)
+
+        if len(self._seen_messages) > 500:
+            self._seen_messages = set(
+                list(self._seen_messages)[-250:]
+            )
 
         if message.channel.name != "chat":
             return
@@ -312,7 +325,7 @@ class AI(commands.Cog):
 
         except Exception as e:
 
-            print(f"[AI Chat Error] {e}")
+            log.error(f"AI chat error: {e}")
 
             await message.reply(
                 "❌ I couldn't process that message."

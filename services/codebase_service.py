@@ -6,6 +6,9 @@
 import re
 
 from services.codebase import search_code, read_file
+from services.log import get_log
+
+log = get_log(__name__)
 
 
 # Only filter out words that truly don't help code search.
@@ -170,7 +173,7 @@ async def search_and_read(
     if not terms:
         return ""
 
-    print(f"[Codebase] Searching for: {terms}")
+    log.debug(f"Searching for: {terms}")
 
     # Search and deduplicate results
     all_results = []
@@ -181,14 +184,11 @@ async def search_and_read(
                 all_results.append(r)
 
     if not all_results:
-        print("[Codebase] No results found.")
+        log.debug("No results found.")
         return ""
 
     file_count = len(set(r["file"] for r in all_results))
-    print(
-        f"[Codebase] Found {len(all_results)} matches "
-        f"across {file_count} files"
-    )
+    log.info(f"Found {len(all_results)} matches across {file_count} files")
 
     # Score files by number of matches
     file_scores: dict[str, int] = {}
@@ -222,7 +222,7 @@ async def search_and_read(
         try:
             content = read_file(filepath, max_chars=30000)
         except Exception as e:
-            print(f"[Codebase] Error reading {filepath}: {e}")
+            log.error(f"Error reading {filepath}: {e}")
             continue
 
         # Get the best match line for this file
@@ -254,7 +254,7 @@ async def search_and_read(
 
     final = "\n".join(context_parts)
 
-    print(f"[Codebase] Context built: {len(final):,} characters")
+    log.debug(f"Context built: {len(final):,} characters")
 
     return final
 

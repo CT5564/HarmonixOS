@@ -1,9 +1,13 @@
 import re
 import asyncio
 
+from services.log import get_log
+
 import services.task_service as task_service
 import services.note_service as note_service
 import services.notion_service as notion_service
+
+log = get_log(__name__)
 
 STOP_WORDS = {
 
@@ -391,7 +395,7 @@ async def retrieve_memory(
     tasks = []
     notes = []
     notion_pages = []
-    print(
+    log.debug(
         f"Extracted memory keywords: {keywords}"
     )
 
@@ -472,9 +476,8 @@ async def retrieve_memory(
 
         except Exception as e:
 
-            print(
-                f"[Notion Error] "
-                f"{page['title']}: {e}"
+            log.error(
+                f"Notion error for {page['title']}: {e}"
             )
 
             continue

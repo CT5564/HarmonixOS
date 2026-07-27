@@ -4,7 +4,10 @@
 # databases, database entries, and nested blocks.
 import asyncio
 
+from services.log import get_log
 from services.notion_client import notion
+
+log = get_log(__name__)
 
 
 # ============================================================
@@ -327,8 +330,8 @@ async def query_database(
     data_sources = db_info.get("data_sources", [])
 
     if not data_sources:
-        print(
-            f"[Notion] No data sources found "
+        log.warning(
+            f"No data sources found "
             f"for database {database_id}"
         )
         return []
@@ -337,14 +340,14 @@ async def query_database(
     data_source_id = data_sources[0].get("id")
 
     if not data_source_id:
-        print(
-            f"[Notion] Data source has no id "
+        log.warning(
+            f"Data source has no id "
             f"in database {database_id}"
         )
         return []
 
-    print(
-        f"[Notion] Database {database_id} -> "
+    log.debug(
+        f"Database {database_id} -> "
         f"data_source {data_source_id}"
     )
 

@@ -10,7 +10,10 @@ from datetime import date
 
 import services.database as db
 from models.task import Task
+from services.log import get_log
 from services.logger import logger
+
+log = get_log(__name__)
 
 
 # ============================================================
@@ -21,7 +24,7 @@ async def create_task(
     task: Task
 ):
 
-    print(
+    log.info(
         f"Task Service: {task}"
     )
 
@@ -44,7 +47,7 @@ async def get_all_tasks(
     author_id: str
 ):
 
-    print(
+    log.info(
         f"Getting all tasks for user "
         f"{author_id}"
     )

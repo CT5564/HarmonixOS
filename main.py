@@ -7,9 +7,12 @@ from dotenv import load_dotenv
 
 from services.database import initialize_database
 from services.logger import logger
+from services.log import get_log, setup as setup_logging
 from services import sync_service
 from services.webhook_server import start_server
 from config import DEV_CHANNEL, NOTION_WEBHOOK_PORT
+
+log = get_log(__name__)
 
 
 load_dotenv()
@@ -29,15 +32,15 @@ async def on_ready():
 
     try:
         synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} commands.")
+        log.info(f"Synced {len(synced)} commands.")
 
         for cmd in synced:
-            print(f"- {cmd.name} | ID: {cmd.id}")
+            log.debug(f"  {cmd.name} | ID: {cmd.id}")
 
     except Exception as e:
-        print(e)
+        log.error(f"Sync failed: {e}")
 
-    print(f"Logged in as {bot.user}")
+    log.info(f"Logged in as {bot.user}")
 
     logger.setup(bot, DEV_CHANNEL)
 
@@ -51,9 +54,7 @@ async def on_ready():
 
     except Exception as e:
 
-        print(
-            f"[Sync] Initial sync failed: {e}"
-        )
+        log.error(f"Initial sync failed: {e}")
 
     try:
 
@@ -61,10 +62,7 @@ async def on_ready():
 
     except Exception as e:
 
-        print(
-            f"[Webhook] Server failed to start: "
-            f"{e}"
-        )
+        log.error(f"Webhook server failed to start: {e}")
 
     # ========================================================
 
@@ -92,9 +90,10 @@ async def load_extensions():
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
             await bot.load_extension(f"cogs.{filename[:-3]}")
-            print(f"Loaded {filename}")
+            log.info(f"Loaded {filename}")
 
 async def main():
+    setup_logging()
     initialize_database()
 
     async with bot:

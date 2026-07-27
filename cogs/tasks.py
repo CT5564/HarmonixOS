@@ -15,6 +15,9 @@ from services import task_service
 from services import sync_service
 from services import database as db
 
+from services.log import get_log
+log = get_log(__name__)
+
 class Tasks(commands.Cog):
 
     def __init__(self, bot):
@@ -47,8 +50,8 @@ class Tasks(commands.Cog):
         )
 
         if channel is None:
-            print(
-                "[Startup] #today channel not found."
+            log.debug(
+                "#today channel not found"
             )
             return
 
@@ -62,9 +65,8 @@ class Tasks(commands.Cog):
                 and message.created_at.date().isoformat()
                 == today_str
             ):
-                print(
-                    "[Startup] Today message already "
-                    "sent. Skipping."
+                log.debug(
+                    "Today message already sent, skipping"
                 )
                 return
 
@@ -73,12 +75,12 @@ class Tasks(commands.Cog):
                 None
             )
             await channel.send(content)
-            print(
-                "[Startup] Sent today message."
+            log.info(
+                "Sent today message on startup"
             )
         except Exception as e:
-            print(
-                f"[Startup Today Error] {e}"
+            log.error(
+                f"Startup today error: {e}"
             )
 
     @app_commands.command(
@@ -502,8 +504,8 @@ class Tasks(commands.Cog):
 
         except Exception as e:
 
-            print(
-                f"[Today Command Error] {e}"
+            log.error(
+                f"Today command error: {e}"
             )
 
             await interaction.followup.send(
@@ -532,8 +534,8 @@ class Tasks(commands.Cog):
 
         if channel is None:
 
-            print(
-                "❌ Could not find #today channel."
+            log.error(
+                "Could not find #today channel"
             )
 
             return
@@ -547,14 +549,14 @@ class Tasks(commands.Cog):
                 message
             )
 
-            print(
-                "📅 Daily #today message sent."
+            log.info(
+                "Daily #today message sent"
             )
 
         except Exception as e:
 
-            print(
-                f"[Daily Today Error] {e}"
+            log.error(
+                f"Daily today error: {e}"
             )
 
 

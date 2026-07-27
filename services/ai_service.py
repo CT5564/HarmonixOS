@@ -4,7 +4,10 @@
 # The dispatcher calls this for CHAT intent.
 
 from agents.chat import chat_agent
+from services.log import get_log
 from services.logger import logger
+
+log = get_log(__name__)
 
 
 async def ask(
@@ -13,8 +16,8 @@ async def ask(
     author_name: str | None = None
 ) -> str:
 
-    print(
-        f"[AI] Chat request from "
+    log.info(
+        f"Chat request from "
         f"{author_name or 'Unknown'}"
     )
 
@@ -46,8 +49,7 @@ chat
 
     except Exception as e:
 
-        print(
-            f"[AI] Error: "
+        log.error(
             f"{type(e).__name__}: {e}"
         )
 

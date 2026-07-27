@@ -14,11 +14,14 @@ from services.notion_service import (
     query_database,
 )
 import services.database as db
+from services.log import get_log
 
 from config import (
     NOTION_TASKS_DB_ID,
     NOTION_PROJECTS_DB_ID,
 )
+
+log = get_log(__name__)
 
 
 # ============================================================
@@ -63,8 +66,8 @@ async def resolve_course_name(
 
     except Exception as e:
 
-        print(
-            f"[Sync] Failed to resolve course "
+        log.error(
+            f"Failed to resolve course "
             f"{course_page_id}: {e}"
         )
 
@@ -102,15 +105,15 @@ async def build_course_cache():
                             page_id
                         ] = name
 
-        print(
-            f"[Sync] Cached "
+        log.info(
+            f"Cached "
             f"{len(_course_cache)} course names."
         )
 
     except Exception as e:
 
-        print(
-            f"[Sync] Failed to build course "
+        log.error(
+            f"Failed to build course "
             f"cache: {e}"
         )
 
@@ -315,8 +318,8 @@ async def push_to_notion(
                 }
             )
 
-            print(
-                f"[Sync] Updated Notion page "
+            log.info(
+                f"Updated Notion page "
                 f"{notion_page_id}"
             )
 
@@ -358,8 +361,8 @@ async def push_to_notion(
                     task_id, new_page_id
                 )
 
-            print(
-                f"[Sync] Created Notion page "
+            log.info(
+                f"Created Notion page "
                 f"{new_page_id}"
             )
 
@@ -367,8 +370,8 @@ async def push_to_notion(
 
     except Exception as e:
 
-        print(
-            f"[Sync] Failed to push to Notion: "
+        log.error(
+            f"Failed to push to Notion: "
             f"{e}"
         )
 
@@ -400,15 +403,15 @@ async def delete_in_notion(
             body={"in_trash": True}
         )
 
-        print(
-            f"[Sync] Trashed Notion page "
+        log.info(
+            f"Trashed Notion page "
             f"{notion_page_id}"
         )
 
     except Exception as e:
 
-        print(
-            f"[Sync] Failed to trash Notion "
+        log.error(
+            f"Failed to trash Notion "
             f"page: {e}"
         )
 
@@ -438,15 +441,15 @@ async def restore_in_notion(
             body={"in_trash": False}
         )
 
-        print(
-            f"[Sync] Restored Notion page "
+        log.info(
+            f"Restored Notion page "
             f"{notion_page_id}"
         )
 
     except Exception as e:
 
-        print(
-            f"[Sync] Failed to restore Notion "
+        log.error(
+            f"Failed to restore Notion "
             f"page: {e}"
         )
 
@@ -477,8 +480,8 @@ async def upsert_from_notion(
             task_data
         )
 
-        print(
-            f"[Sync] Upserted Notion page "
+        log.info(
+            f"Upserted Notion page "
             f"{page_id} → local task "
             f"{local_id}"
         )
@@ -487,8 +490,8 @@ async def upsert_from_notion(
 
     except Exception as e:
 
-        print(
-            f"[Sync] Failed to upsert from "
+        log.error(
+            f"Failed to upsert from "
             f"Notion: {e}"
         )
 
@@ -503,7 +506,7 @@ async def initial_sync():
     """Pull all Notion tasks into local DB
     on startup. Notion is source of truth."""
 
-    print("[Sync] Starting initial sync...")
+    log.info("Starting initial sync...")
 
     await build_course_cache()
 
@@ -513,8 +516,8 @@ async def initial_sync():
             NOTION_TASKS_DB_ID
         )
 
-        print(
-            f"[Sync] Found {len(entries)} "
+        log.info(
+            f"Found {len(entries)} "
             f"entries in Notion."
         )
 
@@ -528,15 +531,15 @@ async def initial_sync():
                 task_data
             )
 
-        print(
-            f"[Sync] Initial sync complete. "
+        log.info(
+            f"Initial sync complete. "
             f"Synced {len(entries)} tasks."
         )
 
     except Exception as e:
 
-        print(
-            f"[Sync] Initial sync failed: {e}"
+        log.error(
+            f"Initial sync failed: {e}"
         )
 
 
@@ -553,8 +556,8 @@ async def push_unsynced():
     if not unsynced:
         return
 
-    print(
-        f"[Sync] Pushing {len(unsynced)} "
+    log.info(
+        f"Pushing {len(unsynced)} "
         f"unsynced tasks..."
     )
 

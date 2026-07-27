@@ -3,9 +3,12 @@
 
 from services.router import classify, Intent
 from services import task_service, note_service, ai_service
+from services.log import get_log
 from services.logger import logger
 from services.entity_extractor import extract_task
 from services.project_service import get_project_names
+
+log = get_log(__name__)
 
 
 async def dispatch(
@@ -14,13 +17,13 @@ async def dispatch(
     author_name: str = None
 ):
 
-    print(f"Dispatching message: {message}")
-    print(f"Author ID: {author_id}")
-    print(f"Author Name: {author_name}")
+    log.debug(f"Dispatching message: {message}")
+    log.debug(f"Author ID: {author_id}")
+    log.debug(f"Author Name: {author_name}")
 
     intent = await classify(message)
 
-    print(f"Identified intent: {intent}")
+    log.info(f"Identified intent: {intent}")
 
     await logger.info(
         f"""
@@ -85,8 +88,8 @@ async def dispatch(
                     result = msg
 
             case Intent.CHAT:
-                print(
-                    f"[Dispatcher] Author: {author_name}"
+                log.debug(
+                    f"Author: {author_name}"
                 )
                 result = await ai_service.ask(
                     message,

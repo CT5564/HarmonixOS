@@ -3,6 +3,10 @@ import sys
 
 from watchfiles import watch
 
+from services.log import get_log
+
+log = get_log(__name__)
+
 
 def run_bot():
     return subprocess.Popen(
@@ -20,8 +24,8 @@ try:
             path.endswith(".py")
     ):
 
-        print("\n🔄 Python file changed.")
-        print("♻️ Restarting Harmonix...\n")
+        log.info("Python file changed.")
+        log.info("Restarting Harmonix...")
 
         process.terminate()
         process.wait()
@@ -30,7 +34,7 @@ try:
 
 except KeyboardInterrupt:
 
-    print("\n🛑 Stopping Harmonix...")
+    log.info("Stopping Harmonix...")
 
     process.terminate()
     process.wait()

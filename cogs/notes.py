@@ -5,6 +5,9 @@ from discord import app_commands
 
 import services.note_service as note_service
 
+from services.log import get_log
+log = get_log(__name__)
+
 
 class Notes(commands.Cog):
 
@@ -43,7 +46,7 @@ class Notes(commands.Cog):
         self,
         interaction
     ):
-        print("NOTES COMMAND CALLED")
+        log.debug("Notes command called")
         notes = await note_service.get_notes()
 
         if not notes:

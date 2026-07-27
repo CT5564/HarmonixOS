@@ -4,7 +4,10 @@
 
 from enum import Enum
 
+from services.log import get_log
 from services.omniroute_client import chat
+
+log = get_log(__name__)
 
 
 class Intent(Enum):
@@ -64,7 +67,7 @@ async def classify(message: str) -> Intent:
     """
 
     heuristic = heuristic_route(message)
-    print("Heuristic route:", heuristic)
+    log.debug(f"Heuristic route: {heuristic}")
     if heuristic is not None:
         return heuristic
 

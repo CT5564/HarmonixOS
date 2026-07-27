@@ -3,7 +3,10 @@ import json
 from models.task import Task
 from services.omniroute_client import chat
 
+from services.log import get_log
 from datetime import datetime
+
+log = get_log(__name__)
 from zoneinfo import ZoneInfo
 
 
@@ -91,7 +94,7 @@ async def extract_task(
 
     try:
 
-        print(
+        log.info(
             f"Extracting data for user: {author_id}"
         )
         PROJECT_LIST = "\n".join(
@@ -160,8 +163,8 @@ async def extract_task(
 
     except Exception as e:
 
-        print(
-            f"[Entity Extractor] {e}"
+        log.error(
+            f"{e}"
         )
 
 

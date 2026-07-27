@@ -7,6 +7,9 @@ import asyncio
 from services.memory import retrieve_memory
 from services.codebase_service import search_and_read
 from services.logger import logger
+from services.log import get_log
+
+log = get_log(__name__)
 
 
 # Budget allocation for each context section
@@ -38,7 +41,7 @@ async def build_context(
     author_name: str | None = None
 ) -> str:
 
-    print("[Context] Retrieving memory and codebase...")
+    log.info("Retrieving memory and codebase...")
 
     # Run memory and codebase retrieval concurrently
     memory_task = asyncio.create_task(
@@ -57,7 +60,7 @@ async def build_context(
         codebase_task
     )
 
-    print("[Context] Memory and codebase retrieved.")
+    log.info("Memory and codebase retrieved.")
 
     tasks = memory.get("tasks", [])
     notes = memory.get("notes", [])
@@ -156,8 +159,8 @@ async def build_context(
                 total_budget
             )
 
-    print(
-        f"[Context] Built successfully: "
+    log.info(
+        f"Built successfully: "
         f"{len(final_context):,} characters"
     )
 
