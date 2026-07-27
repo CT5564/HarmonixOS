@@ -385,6 +385,80 @@ def get_overdue_tasks(
         return cursor.fetchall()
 
 
+def get_upcoming_tasks(
+    author_id: str | None,
+    today: str,
+    end_date: str
+):
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        if author_id:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags,
+                    status
+                FROM tasks
+                WHERE
+                    author_id = ?
+                    AND due_date > ?
+                    AND due_date <= ?
+                    AND status != 'completed'
+                ORDER BY
+                    due_date,
+                    due_time IS NULL,
+                    due_time,
+                    created_at
+                """,
+                (
+                    author_id,
+                    today,
+                    end_date
+                )
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags,
+                    status
+                FROM tasks
+                WHERE
+                    due_date > ?
+                    AND due_date <= ?
+                    AND status != 'completed'
+                ORDER BY
+                    due_date,
+                    due_time IS NULL,
+                    due_time,
+                    created_at
+                """,
+                (
+                    today,
+                    end_date
+                )
+            )
+
+        return cursor.fetchall()
+
+
 # ============================================================
 # NOTES
 # ============================================================

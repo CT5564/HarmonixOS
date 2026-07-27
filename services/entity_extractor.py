@@ -45,20 +45,21 @@ Rules:
   or null.
 
 - project:
-  A list will be sent at the buttom of this message. Return null if unknown.
+  You MUST always return a project from the list below.
+  Match the user's message to the closest project.
+  If no project is mentioned, pick the most likely one based on context (e.g. school-related tasks go to a school project, personal tasks go to Personal).
+  Never return null for project.
 
 - tags:
   Array of strings.
 
 If the user does not explicitly specify:
-
 - priority
-- project
 - tags
 
 return null (or [] for tags).
 
-Do not guess.
+Do not guess priority or tags.
 
 Return ONLY JSON.
 

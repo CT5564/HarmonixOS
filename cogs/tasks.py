@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 
-from datetime import time
+from datetime import date, time
 from zoneinfo import ZoneInfo
 
 from services.entity_extractor import extract_task
@@ -17,12 +17,67 @@ class Tasks(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        
+
         # Philippines timezone
         self.ph_timezone = ZoneInfo("Asia/Manila")
 
         # Start daily #today scheduler
         self.daily_today.start()
+
+    # ============================================================
+    # COG LOAD — auto-send today message on startup
+    # ============================================================
+
+    async def cog_load(self):
+        self.bot.loop.create_task(
+            self.send_startup_today()
+        )
+
+    async def send_startup_today(self):
+        await self.bot.wait_until_ready()
+
+        import asyncio
+        await asyncio.sleep(3)
+
+        channel = discord.utils.get(
+            self.bot.get_all_channels(),
+            name="today"
+        )
+
+        if channel is None:
+            print(
+                "[Startup] #today channel not found."
+            )
+            return
+
+        today_str = date.today().isoformat()
+
+        async for message in channel.history(
+            limit=20
+        ):
+            if (
+                message.author == self.bot.user
+                and message.created_at.date().isoformat()
+                == today_str
+            ):
+                print(
+                    "[Startup] Today message already "
+                    "sent. Skipping."
+                )
+                return
+
+        try:
+            content = await self.build_today_message(
+                None
+            )
+            await channel.send(content)
+            print(
+                "[Startup] Sent today message."
+            )
+        except Exception as e:
+            print(
+                f"[Startup Today Error] {e}"
+            )
 
     @app_commands.command(
         name="capture",
@@ -33,7 +88,7 @@ class Tasks(commands.Cog):
         interaction,
         task: str
     ):
-        
+
         await interaction.response.defer(thinking=True)
 
         author_id = str(interaction.user.id)
@@ -51,16 +106,15 @@ class Tasks(commands.Cog):
             f"✅ Saved:\n**{entity.title}**"
         )
 
-    
+
 
     @app_commands.command(
         name="done",
         description="Mark a task as completed."
     )
-    
+
     async def done(self, interaction, task_id: int):
         await interaction.response.defer(thinking=True)
-        # Mark the task completed and notify the user
         author_id = str(interaction.user.id)
 
         await task_service.complete_task_by_id(
@@ -71,7 +125,7 @@ class Tasks(commands.Cog):
         await interaction.followup.send(
             f"✅ Task #{task_id} completed!"
         )
-    
+
     @app_commands.command(
         name="delete",
         description="Delete a task."
@@ -150,11 +204,6 @@ class Tasks(commands.Cog):
         await interaction.followup.send(msg)
 
 
-
-
-
-
-
     def cog_unload(self):
 
         self.daily_today.cancel()
@@ -164,23 +213,90 @@ class Tasks(commands.Cog):
     # TODAY MESSAGE FORMATTER
     # ============================================================
 
+    PRIORITY_EMOJI = {
+        "high": "🔴",
+        "medium": "🟡",
+        "low": "🟢"
+    }
+
+    def _format_task(self, task, show_date=False):
+        task_id, title, desc, priority, due_date, \
+            due_time, project, tags, *rest = task
+
+        emoji = self.PRIORITY_EMOJI.get(
+            priority, ""
+        )
+
+        line = f"`#{task_id}` {emoji} **{title}**"
+
+        details = []
+
+        if show_date and due_date:
+            details.append(f"📅 {due_date}")
+
+        if due_time:
+            details.append(f"⏰ {due_time}")
+
+        if project:
+            details.append(f"📂 {project}")
+
+        if details:
+            line += "\n" + " · ".join(details)
+
+        return line
+
+
     async def build_today_message(
         self,
         author_id: str | None = None
     ):
 
-        today_tasks = await task_service.get_today_tasks(
-            author_id
-        )
+        today = date.today()
+        today_str = today.isoformat()
 
         overdue_tasks = await task_service.get_overdue_tasks(
             author_id
         )
 
+        today_tasks = await task_service.get_today_tasks(
+            author_id
+        )
 
-        # Start message
-        message = "## 📅 Today's Tasks\n\n"
+        upcoming_tasks = await task_service.get_upcoming_tasks(
+            author_id
+        )
 
+        total = (
+            len(overdue_tasks)
+            + len(today_tasks)
+            + len(upcoming_tasks)
+        )
+
+        message = "## 📅 Today\n\n"
+
+        # ========================================================
+        # SUMMARY LINE
+        # ========================================================
+
+        parts = []
+
+        if overdue_tasks:
+            parts.append(
+                f"**{len(overdue_tasks)}** overdue"
+            )
+
+        if today_tasks:
+            parts.append(
+                f"**{len(today_tasks)}** due today"
+            )
+
+        if upcoming_tasks:
+            parts.append(
+                f"**{len(upcoming_tasks)}** upcoming"
+            )
+
+        if parts:
+            message += " · ".join(parts) + "\n\n"
 
         # ========================================================
         # OVERDUE TASKS
@@ -191,31 +307,12 @@ class Tasks(commands.Cog):
             message += "### 🔴 Overdue\n\n"
 
             for task in overdue_tasks:
-
                 message += (
-                    f"**`#{task[0]}` {task[1]}**\n"
+                    self._format_task(task)
+                    + "\n"
                 )
 
-                if task[4]:
-
-                    message += (
-                        f"📅 Due: {task[4]}\n"
-                    )
-
-                if task[3]:
-
-                    message += (
-                        f"⚡ Priority: {task[3]}\n"
-                    )
-
-                if task[6]:
-
-                    message += (
-                        f"📂 Project: {task[6]}\n"
-                    )
-
-                message += "\n"
-
+            message += "\n"
 
         # ========================================================
         # TODAY'S TASKS
@@ -223,46 +320,64 @@ class Tasks(commands.Cog):
 
         if today_tasks:
 
-            message += "### 🟡 Due Today\n\n"
+            message += "### 🟡 Today\n\n"
 
             for task in today_tasks:
-
                 message += (
-                    f"**`#{task[0]}` {task[1]}**\n"
+                    self._format_task(task)
+                    + "\n"
                 )
 
-                if task[5]:
+            message += "\n"
 
+        # ========================================================
+        # UPCOMING TASKS — grouped by date
+        # ========================================================
+
+        if upcoming_tasks:
+
+            by_date: dict[str, list] = {}
+
+            for task in upcoming_tasks:
+                d = task[4]
+                by_date.setdefault(d, []).append(
+                    task
+                )
+
+            message += "### 🔵 Upcoming\n\n"
+
+            for d, tasks in by_date.items():
+                dt = date.fromisoformat(d)
+                diff = (dt - today).days
+                day_name = dt.strftime("%a")
+
+                if diff == 1:
+                    label = "Tomorrow"
+                else:
+                    label = f"{day_name} ({diff}d)"
+
+                message += (
+                    f"**{label} — {d}**\n"
+                )
+
+                for task in tasks:
                     message += (
-                        f"⏰ {task[5]}\n"
-                    )
-
-                if task[3]:
-
-                    message += (
-                        f"⚡ Priority: {task[3]}\n"
-                    )
-
-                if task[6]:
-
-                    message += (
-                        f"📂 Project: {task[6]}\n"
+                        self._format_task(task)
+                        + "\n"
                     )
 
                 message += "\n"
-
 
         # ========================================================
         # NO TASKS
         # ========================================================
 
-        if not today_tasks and not overdue_tasks:
+        if total == 0:
 
             message += (
                 "🎉 **You're all caught up!**\n"
-                "Nothing scheduled for today."
+                "Nothing scheduled."
             )
-
 
         return message
 

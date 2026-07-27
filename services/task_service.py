@@ -161,3 +161,24 @@ async def get_overdue_tasks(
         author_id,
         today
     )
+
+
+# ============================================================
+# UPCOMING TASKS (next 2 weeks)
+# ============================================================
+
+async def get_upcoming_tasks(
+    author_id: str
+):
+
+    today = date.today().isoformat()
+    end = (
+        date.today()
+        + __import__('datetime').timedelta(days=14)
+    ).isoformat()
+
+    return db.get_upcoming_tasks(
+        author_id,
+        today,
+        end
+    )
