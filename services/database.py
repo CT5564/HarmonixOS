@@ -64,6 +64,33 @@ def initialize_database():
 
         conn.commit()
 
+        # ============================================================
+        # MIGRATIONS — add columns if missing
+        # ============================================================
+
+        cursor.execute(
+            "PRAGMA table_info(tasks)"
+        )
+        cols = {
+            row[1]
+            for row in cursor.fetchall()
+        }
+
+        if "updated_at" not in cols:
+            cursor.execute(
+                "ALTER TABLE tasks "
+                "ADD COLUMN updated_at "
+                "TIMESTAMP"
+            )
+
+        if "type" not in cols:
+            cursor.execute(
+                "ALTER TABLE tasks "
+                "ADD COLUMN type TEXT"
+            )
+
+        conn.commit()
+
 
 # ============================================================
 # TASKS
@@ -87,9 +114,10 @@ def add_task(task: Task) -> None:
                 due_time,
                 project,
                 tags,
+                type,
                 notion_page_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 task.author_id,
@@ -101,6 +129,7 @@ def add_task(task: Task) -> None:
                 task.due_time,
                 task.project,
                 json.dumps(task.tags or []),
+                getattr(task, "type", None),
                 None
             )
         )
@@ -135,6 +164,39 @@ def get_tasks(author_id: str) -> list:
         return cursor.fetchall()
 
 
+def get_task_by_id(
+    task_id: int
+):
+    """Get a single task by its local ID."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                author_id,
+                title,
+                description,
+                status,
+                priority,
+                due_date,
+                due_time,
+                project,
+                tags,
+                type,
+                notion_page_id
+            FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,)
+        )
+
+        return cursor.fetchone()
+
+
 def complete_task(
     task_id: int,
     author_id: str
@@ -149,7 +211,8 @@ def complete_task(
             UPDATE tasks
             SET
                 status = 'completed',
-                completed_at = CURRENT_TIMESTAMP
+                completed_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
             WHERE
                 id = ?
                 AND author_id = ?
@@ -201,7 +264,8 @@ def update_task(
         cursor.execute(
             """
             UPDATE tasks
-            SET title = ?
+            SET title = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE
                 id = ?
                 AND author_id = ?
@@ -217,7 +281,7 @@ def update_task(
 
 
 def search_tasks(
-    author_id: str,
+    author_id: str | None,
     keyword: str
 ):
 
@@ -225,34 +289,62 @@ def search_tasks(
 
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT
-                id,
-                title,
-                description,
-                priority,
-                due_date,
-                due_time,
-                project,
-                tags
-            FROM tasks
-            WHERE
-                author_id = ?
-                AND (
-                    title LIKE ?
-                    OR description LIKE ?
-                    OR project LIKE ?
+        if author_id:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags
+                FROM tasks
+                WHERE
+                    author_id = ?
+                    AND (
+                        title LIKE ?
+                        OR description LIKE ?
+                        OR project LIKE ?
+                    )
+                LIMIT 5
+                """,
+                (
+                    author_id,
+                    f"%{keyword}%",
+                    f"%{keyword}%",
+                    f"%{keyword}%"
                 )
-            LIMIT 5
-            """,
-            (
-                author_id,
-                f"%{keyword}%",
-                f"%{keyword}%",
-                f"%{keyword}%"
             )
-        )
+        else:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags
+                FROM tasks
+                WHERE
+                    (
+                        title LIKE ?
+                        OR description LIKE ?
+                        OR project LIKE ?
+                    )
+                LIMIT 5
+                """,
+                (
+                    f"%{keyword}%",
+                    f"%{keyword}%",
+                    f"%{keyword}%"
+                )
+            )
 
         return cursor.fetchall()
 
@@ -457,6 +549,301 @@ def get_upcoming_tasks(
             )
 
         return cursor.fetchall()
+
+
+# ============================================================
+# NOTION SYNC
+# ============================================================
+
+def upsert_task_from_notion(
+    data: dict
+) -> int | None:
+    """Insert or update a task by notion_page_id.
+    Returns the local task id."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        notion_page_id = data.get("notion_page_id")
+
+        if not notion_page_id:
+            return None
+
+        cursor.execute(
+            """
+            SELECT id FROM tasks
+            WHERE notion_page_id = ?
+            """,
+            (notion_page_id,)
+        )
+
+        existing = cursor.fetchone()
+
+        tags_json = json.dumps(
+            data.get("tags", [])
+        )
+
+        if existing:
+
+            cursor.execute(
+                """
+                UPDATE tasks
+                SET
+                    title = ?,
+                    description = ?,
+                    status = ?,
+                    priority = ?,
+                    due_date = ?,
+                    due_time = ?,
+                    project = ?,
+                    tags = ?,
+                    type = ?,
+                    updated_at = CURRENT_TIMESTAMP,
+                    last_synced = CURRENT_TIMESTAMP
+                WHERE
+                    notion_page_id = ?
+                """,
+                (
+                    data.get("title", ""),
+                    data.get("description"),
+                    data.get("status", "todo"),
+                    data.get("priority"),
+                    data.get("due_date"),
+                    data.get("due_time"),
+                    data.get("project"),
+                    tags_json,
+                    data.get("type"),
+                    notion_page_id
+                )
+            )
+
+            conn.commit()
+            return existing[0]
+
+        else:
+
+            cursor.execute(
+                """
+                INSERT INTO tasks(
+                    author_id,
+                    title,
+                    description,
+                    status,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags,
+                    type,
+                    notion_page_id,
+                    sync_status,
+                    last_synced
+                )
+                VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, 'synced',
+                    CURRENT_TIMESTAMP
+                )
+                """,
+                (
+                    data.get(
+                        "author_id",
+                        "0"
+                    ),
+                    data.get("title", ""),
+                    data.get("description"),
+                    data.get("status", "todo"),
+                    data.get("priority"),
+                    data.get("due_date"),
+                    data.get("due_time"),
+                    data.get("project"),
+                    tags_json,
+                    data.get("type"),
+                    notion_page_id
+                )
+            )
+
+            conn.commit()
+            return cursor.lastrowid
+
+
+def get_task_by_notion_id(
+    notion_page_id: str
+):
+    """Get a local task by its Notion page ID."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                author_id,
+                title,
+                description,
+                status,
+                priority,
+                due_date,
+                due_time,
+                project,
+                tags,
+                type,
+                notion_page_id,
+                updated_at,
+                last_synced
+            FROM tasks
+            WHERE notion_page_id = ?
+            """,
+            (notion_page_id,)
+        )
+
+        return cursor.fetchone()
+
+
+def mark_task_synced(
+    task_id: int
+):
+    """Mark a task as synced with Notion."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET
+                last_synced = CURRENT_TIMESTAMP,
+                sync_status = 'synced'
+            WHERE id = ?
+            """,
+            (task_id,)
+        )
+
+        conn.commit()
+
+
+def get_unsynced_tasks():
+    """Get tasks that need syncing to Notion.
+    Either no notion_page_id (new) or
+    last_synced < updated_at (modified)."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                author_id,
+                title,
+                description,
+                status,
+                priority,
+                due_date,
+                due_time,
+                project,
+                tags,
+                type,
+                notion_page_id,
+                updated_at,
+                last_synced
+            FROM tasks
+            WHERE
+                status != 'deleted'
+                AND (
+                    notion_page_id IS NULL
+                    OR last_synced IS NULL
+                    OR updated_at > last_synced
+                )
+            """
+        )
+
+        return cursor.fetchall()
+
+
+def set_notion_page_id(
+    task_id: int,
+    notion_page_id: str
+):
+    """Store the Notion page ID for a local task."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET
+                notion_page_id = ?,
+                last_synced = CURRENT_TIMESTAMP,
+                sync_status = 'synced'
+            WHERE id = ?
+            """,
+            (
+                notion_page_id,
+                task_id
+            )
+        )
+
+        conn.commit()
+
+
+def soft_delete_task_by_notion_id(
+    notion_page_id: str
+):
+    """Mark a local task as deleted when
+    Notion page is trashed."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET
+                status = 'deleted',
+                updated_at = CURRENT_TIMESTAMP,
+                last_synced = CURRENT_TIMESTAMP
+            WHERE notion_page_id = ?
+            """,
+            (notion_page_id,)
+        )
+
+        conn.commit()
+
+
+def restore_task_by_notion_id(
+    notion_page_id: str
+):
+    """Restore a locally deleted task when
+    Notion page is restored."""
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET
+                status = 'todo',
+                updated_at = CURRENT_TIMESTAMP,
+                last_synced = CURRENT_TIMESTAMP
+            WHERE
+                notion_page_id = ?
+                AND status = 'deleted'
+            """,
+            (notion_page_id,)
+        )
+
+        conn.commit()
 
 
 # ============================================================

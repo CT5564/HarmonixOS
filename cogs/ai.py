@@ -1,8 +1,12 @@
 # AI Cog.
 # Handles all AI-related commands and interactions.
 
+import json
+
+import discord
 from discord.ext import commands
 from discord import app_commands
+
 from services.ai_service import ask
 from services.dispatcher import dispatch
 from services.codebase_service import (
@@ -10,6 +14,8 @@ from services.codebase_service import (
     search_codebase,
     read_specific_file,
 )
+from agents.plan import plan_agent
+from agents.build import build_agent
 
 
 class AI(commands.Cog):
@@ -46,7 +52,6 @@ class AI(commands.Cog):
                 )
             )
 
-            # Discord messages have a 2000 character limit
             if len(answer) > 1900:
                 answer = answer[:1900] + "\n..."
 
@@ -55,10 +60,117 @@ class AI(commands.Cog):
         except Exception as e:
 
             await interaction.followup.send(
-                "❌ Something went wrong while talking to Harmonix."
+                "❌ Something went wrong."
             )
 
             print(f"[AI Error] {e}")
+
+
+    # ============================================================
+    # /plan COMMAND
+    # ============================================================
+
+    @app_commands.command(
+        name="plan",
+        description="Plan a task or feature."
+    )
+    async def plan_task(
+        self,
+        interaction,
+        task: str
+    ):
+
+        await interaction.response.defer(
+            thinking=True
+        )
+
+        try:
+
+            plan = await plan_agent(
+                task,
+                author_id=str(interaction.user.id),
+                author_name=(
+                    interaction.user.nick
+                    or interaction.user.global_name
+                    or interaction.user.name
+                )
+            )
+
+            if len(plan) > 1900:
+                plan = plan[:1900] + "\n..."
+
+            await interaction.followup.send(plan)
+
+        except Exception as e:
+
+            await interaction.followup.send(
+                "❌ Failed to create plan."
+            )
+
+            print(f"[Plan Error] {e}")
+
+
+    # ============================================================
+    # /build COMMAND
+    # ============================================================
+
+    @app_commands.command(
+        name="build",
+        description="Build or modify code."
+    )
+    async def build_code(
+        self,
+        interaction,
+        task: str
+    ):
+
+        await interaction.response.defer(
+            thinking=True
+        )
+
+        try:
+
+            result = await build_agent(
+                task,
+                author_id=str(interaction.user.id),
+                author_name=(
+                    interaction.user.nick
+                    or interaction.user.global_name
+                    or interaction.user.name
+                )
+            )
+
+            summary = result.get(
+                "summary", "No summary."
+            )
+            edits = result.get("edits", [])
+
+            if edits:
+                edit_lines = [
+                    f"`{e['file']}` — {e['action']}"
+                    for e in edits
+                ]
+                footer = (
+                    "\n\n**Files changed:**\n"
+                    + "\n".join(edit_lines)
+                )
+            else:
+                footer = ""
+
+            if len(summary) > 1800:
+                summary = summary[:1800] + "\n..."
+
+            await interaction.followup.send(
+                f"**Build complete**\n\n{summary}{footer}"
+            )
+
+        except Exception as e:
+
+            await interaction.followup.send(
+                "❌ Build failed."
+            )
+
+            print(f"[Build Error] {e}")
 
 
     # ============================================================
@@ -87,7 +199,6 @@ class AI(commands.Cog):
                 )
                 return
 
-            # Discord limit
             if len(results) > 1900:
                 results = results[:1900] + "\n..."
 
@@ -142,24 +253,16 @@ class AI(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        
-        # Ignore Harmonix and other bots
+
         if message.author.bot:
             return
 
-
-        # Only respond in #chat
         if message.channel.name != "chat":
             return
 
-
-        # Optional:
-        # Ignore messages that mention another bot
         if message.mentions and self.bot.user not in message.mentions:
             return
 
-
-        # Remove bot mention if Harmonix was mentioned
         content = message.content
 
         if self.bot.user:
@@ -174,15 +277,11 @@ class AI(commands.Cog):
                 ""
             ).strip()
 
-
-        # Don't respond to empty messages
         if not content:
             return
 
-        
         try:
 
-            # Show typing indicator
             async with message.channel.typing():
 
                 answer = await dispatch(
@@ -195,15 +294,12 @@ class AI(commands.Cog):
                     )
                 )
 
-
-            # Discord messages have a 2000 character limit
             if len(answer) <= 1900:
 
                 await message.reply(answer)
 
             else:
 
-                # Split response into chunks
                 chunks = [
                     answer[i:i + 1900]
                     for i in range(0, len(answer), 1900)

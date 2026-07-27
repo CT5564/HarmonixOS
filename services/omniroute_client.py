@@ -23,7 +23,8 @@ OMNIROUTE_API_KEY = os.getenv(
 
 async def chat(
     model: str,
-    messages: list
+    messages: list,
+    tools: list | None = None
 ) -> dict:
 
     def request():
@@ -34,23 +35,27 @@ async def chat(
             "Content-Type": "application/json"
         }
 
-        # Only add API key if one is configured.
         if OMNIROUTE_API_KEY:
             headers["Authorization"] = (
                 f"Bearer {OMNIROUTE_API_KEY}"
             )
 
+        body = {
+            "model": model,
+            "messages": messages,
+            "stream": False
+        }
+
+        if tools:
+            body["tools"] = tools
+
         response = requests.post(
             OMNIROUTE_URL,
             headers=headers,
-            json={
-                "model": model,
-                "messages": messages,
-                "stream": False
-            },
+            json=body,
             timeout=120
         )
-        
+
         response.raise_for_status()
 
         data = response.json()
@@ -63,13 +68,13 @@ async def chat(
         request
     )
 
-    # OmniRoute uses OpenAI-compatible responses.
+    choice = data["choices"][0]
 
-    content = (
-        data["choices"][0]
-        ["message"]
-        ["content"]
-    )
+    message = choice.get("message", {})
+
+    content = message.get("content") or ""
+
+    tool_calls = message.get("tool_calls")
 
     return {
         "model": data.get(
@@ -79,15 +84,19 @@ async def chat(
 
         "message": {
             "role": "assistant",
-            "content": content
+            "content": content,
+            **(
+                {"tool_calls": tool_calls}
+                if tool_calls
+                else {}
+            ),
         },
 
-        # OmniRoute timing
-        "python_duration": elapsed,
+        "finish_reason": choice.get(
+            "finish_reason", "stop"
+        ),
 
-        # These existed in the old Ollama response.
-        # Keep them so the rest of Harmonix
-        # doesn't break.
+        "python_duration": elapsed,
 
         "total_duration": 0,
         "load_duration": 0,
@@ -95,18 +104,10 @@ async def chat(
         "eval_duration": 0,
 
         "prompt_eval_count": data.get(
-            "usage",
-            {}
-        ).get(
-            "prompt_tokens",
-            0
-        ),
+            "usage", {}
+        ).get("prompt_tokens", 0),
 
         "eval_count": data.get(
-            "usage",
-            {}
-        ).get(
-            "completion_tokens",
-            0
-        )
+            "usage", {}
+        ).get("completion_tokens", 0),
     }

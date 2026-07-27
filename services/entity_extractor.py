@@ -1,7 +1,7 @@
 import json
 
 from models.task import Task
-from services.ollama_client import chat
+from services.omniroute_client import chat
 
 from datetime import datetime
 from zoneinfo import ZoneInfo

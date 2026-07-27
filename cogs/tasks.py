@@ -12,6 +12,8 @@ from services.entity_extractor import extract_task
 from services.dispatcher import dispatch
 from services.project_service import get_project_names
 from services import task_service
+from services import sync_service
+from services import database as db
 
 class Tasks(commands.Cog):
 
@@ -106,6 +108,26 @@ class Tasks(commands.Cog):
             f"✅ Saved:\n**{entity.title}**"
         )
 
+        # Push to Notion in background
+        import asyncio
+        asyncio.create_task(
+            sync_service.push_to_notion({
+                "title": entity.title,
+                "description": entity.description,
+                "status": "todo",
+                "priority": entity.priority,
+                "due_date": entity.due_date,
+                "due_time": entity.due_time,
+                "project": entity.project,
+                "tags": entity.tags,
+                "type": (
+                    entity.tags[0]
+                    if entity.tags
+                    else None
+                ),
+            })
+        )
+
 
 
     @app_commands.command(
@@ -117,6 +139,8 @@ class Tasks(commands.Cog):
         await interaction.response.defer(thinking=True)
         author_id = str(interaction.user.id)
 
+        row = db.get_task_by_id(task_id)
+
         await task_service.complete_task_by_id(
             task_id,
             author_id
@@ -125,6 +149,28 @@ class Tasks(commands.Cog):
         await interaction.followup.send(
             f"✅ Task #{task_id} completed!"
         )
+
+        # Push completion to Notion
+        if row and row[11]:
+            import asyncio
+            asyncio.create_task(
+                sync_service.push_to_notion({
+                    "id": row[0],
+                    "title": row[2],
+                    "status": "completed",
+                    "priority": row[5],
+                    "due_date": row[6],
+                    "due_time": row[7],
+                    "project": row[8],
+                    "tags": (
+                        __import__("json").loads(
+                            row[9]
+                        ) if row[9] else []
+                    ),
+                    "type": row[10],
+                    "notion_page_id": row[11],
+                })
+            )
 
     @app_commands.command(
         name="delete",
@@ -139,6 +185,8 @@ class Tasks(commands.Cog):
         await interaction.response.defer(thinking=True)
         author_id = str(interaction.user.id)
 
+        row = db.get_task_by_id(task_id)
+
         await task_service.delete_task_by_id(
             task_id,
             author_id
@@ -147,6 +195,15 @@ class Tasks(commands.Cog):
         await interaction.followup.send(
             f"🗑️ Deleted task #{task_id}"
         )
+
+        # Trash in Notion
+        if row and row[11]:
+            import asyncio
+            asyncio.create_task(
+                sync_service.delete_in_notion({
+                    "notion_page_id": row[11],
+                })
+            )
 
     @app_commands.command(
         name="edit",
@@ -162,6 +219,8 @@ class Tasks(commands.Cog):
         await interaction.response.defer(thinking=True)
         author_id = str(interaction.user.id)
 
+        row = db.get_task_by_id(task_id)
+
         await task_service.edit_task(
             task_id,
             author_id,
@@ -171,6 +230,28 @@ class Tasks(commands.Cog):
         await interaction.followup.send(
             f"✏️ Updated task #{task_id}"
         )
+
+        # Push update to Notion
+        if row and row[11]:
+            import asyncio
+            asyncio.create_task(
+                sync_service.push_to_notion({
+                    "id": row[0],
+                    "title": new_text,
+                    "status": row[4],
+                    "priority": row[5],
+                    "due_date": row[6],
+                    "due_time": row[7],
+                    "project": row[8],
+                    "tags": (
+                        __import__("json").loads(
+                            row[9]
+                        ) if row[9] else []
+                    ),
+                    "type": row[10],
+                    "notion_page_id": row[11],
+                })
+            )
 
     @app_commands.command(
         name="search",
@@ -184,6 +265,10 @@ class Tasks(commands.Cog):
 
         await interaction.response.defer(thinking=True)
         author_id = str(interaction.user.id)
+
+        # Search all tasks for owner
+        if author_id == "753163813020499968":
+            author_id = None
 
         tasks = await task_service.search_for_tasks(
             author_id,
@@ -402,6 +487,10 @@ class Tasks(commands.Cog):
             author_id = str(
                 interaction.user.id
             )
+
+            # Show all tasks for owner
+            if author_id == "753163813020499968":
+                author_id = None
 
             message = await self.build_today_message(
                 author_id

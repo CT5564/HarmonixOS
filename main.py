@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 
 from services.database import initialize_database
 from services.logger import logger
-from config import DEV_CHANNEL
+from services import sync_service
+from services.webhook_server import start_server
+from config import DEV_CHANNEL, NOTION_WEBHOOK_PORT
 
 
 load_dotenv()
@@ -39,19 +41,49 @@ async def on_ready():
 
     logger.setup(bot, DEV_CHANNEL)
 
+    # ========================================================
+    # NOTION SYNC — initial pull + webhook server
+    # ========================================================
+
+    try:
+
+        await sync_service.initial_sync()
+
+    except Exception as e:
+
+        print(
+            f"[Sync] Initial sync failed: {e}"
+        )
+
+    try:
+
+        await start_server(NOTION_WEBHOOK_PORT)
+
+    except Exception as e:
+
+        print(
+            f"[Webhook] Server failed to start: "
+            f"{e}"
+        )
+
+    # ========================================================
+
     await logger.startup(
         f"""
     **Version**
-    0.5.0
+    0.6.0
 
     **Model**
-    llama3.2:3b
+    auto/best-fast
 
     **Guilds**
     {len(bot.guilds)}
 
     **Commands**
     {len(bot.tree.get_commands())}
+
+    **Notion Sync**
+    Active (webhook port {NOTION_WEBHOOK_PORT})
     """
     )
 

@@ -4,7 +4,7 @@
 
 from enum import Enum
 
-from services.ollama_client import chat
+from services.omniroute_client import chat
 
 
 class Intent(Enum):
