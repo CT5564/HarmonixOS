@@ -4,7 +4,7 @@
 import os
 import asyncio
 import time
-from urllib import response
+
 import requests
 
 from dotenv import load_dotenv

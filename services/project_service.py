@@ -15,7 +15,9 @@ async def get_project_names():
 
     for entry in entries:
 
-        title = entry.get("title")
+        title = notion_service.extract_page_title(
+            entry
+        )
 
         if title:
             project_names.append(title)

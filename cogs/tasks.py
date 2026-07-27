@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from services.entity_extractor import extract_task
 from services.dispatcher import dispatch
+from services.project_service import get_project_names
 from services import task_service
 
 class Tasks(commands.Cog):
@@ -36,10 +37,12 @@ class Tasks(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         author_id = str(interaction.user.id)
+        projects = await get_project_names()
 
         entity = await extract_task(
             task,
-            author_id=author_id
+            author_id,
+            projects
         )
 
         await task_service.create_task(entity)
@@ -163,7 +166,7 @@ class Tasks(commands.Cog):
 
     async def build_today_message(
         self,
-        author_id: str
+        author_id: str | None = None
     ):
 
         today_tasks = await task_service.get_today_tasks(
@@ -334,7 +337,7 @@ class Tasks(commands.Cog):
 
         try:
 
-            message = await self.build_today_message()
+            message = await self.build_today_message(None)
 
             await channel.send(
                 message

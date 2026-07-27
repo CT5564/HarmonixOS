@@ -2,21 +2,8 @@
 #
 # Handles searching and reading Notion pages,
 # databases, database entries, and nested blocks.
-import os
-import requests
+import asyncio
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-NOTION_TOKEN = os.getenv(
-    "NOTION_TOKEN"
-)
-
-NOTION_VERSION = os.getenv(
-    "NOTION_VERSION",
-    "2025-09-03"
-)
 from services.notion_client import notion
 
 
@@ -151,7 +138,8 @@ async def get_block_children(
         return ""
 
 
-    response = notion.blocks.children.list(
+    response = await asyncio.to_thread(
+        notion.blocks.children.list,
         block_id=block_id
     )
 
@@ -232,7 +220,8 @@ async def search_pages(
     keyword: str
 ):
 
-    response = notion.search(
+    response = await asyncio.to_thread(
+        notion.search,
         query=keyword
     )
 
@@ -282,7 +271,8 @@ async def search_databases(
     keyword: str
 ):
 
-    response = notion.search(
+    response = await asyncio.to_thread(
+        notion.search,
         query=keyword,
         filter={
             "property": "object",
@@ -297,8 +287,6 @@ async def search_databases(
         "results",
         []
     ):
-
-
 
         title = extract_database_title(
             item
@@ -315,15 +303,78 @@ async def search_databases(
 
 
     return results
+
 # ============================================================
-# QUERY DATABASE / DATA SOURCE
+# QUERY DATABASE
+# ============================================================
+
+async def query_database(
+    database_id: str,
+    filter_obj: dict | None = None
+):
+
+    # In API 2025-09-03, databases no longer have a direct
+    # query endpoint. We must:
+    # 1. Retrieve the database to get its data_source_id
+    # 2. Query the data source instead
+
+    db_info = await asyncio.to_thread(
+        notion.request,
+        f"databases/{database_id}",
+        "GET"
+    )
+
+    data_sources = db_info.get("data_sources", [])
+
+    if not data_sources:
+        print(
+            f"[Notion] No data sources found "
+            f"for database {database_id}"
+        )
+        return []
+
+    # Use the first (default) data source
+    data_source_id = data_sources[0].get("id")
+
+    if not data_source_id:
+        print(
+            f"[Notion] Data source has no id "
+            f"in database {database_id}"
+        )
+        return []
+
+    print(
+        f"[Notion] Database {database_id} -> "
+        f"data_source {data_source_id}"
+    )
+
+    body = {}
+    if filter_obj:
+        body["filter"] = filter_obj
+
+    response = await asyncio.to_thread(
+        notion.request,
+        f"data_sources/{data_source_id}/query",
+        "POST",
+        body=body
+    )
+
+    return response.get(
+        "results",
+        []
+    )
+
+
+# ============================================================
+# QUERY DATA SOURCE
 # ============================================================
 
 async def query_data_source(
     data_source_id: str
 ):
 
-    response = notion.data_sources.query(
+    response = await asyncio.to_thread(
+        notion.data_sources.query,
         data_source_id=data_source_id
     )
 
@@ -589,6 +640,7 @@ async def get_database_content(
     return "\n\n".join(
         content
     )
+
 def extract_database_title(
     database: dict
 ) -> str:

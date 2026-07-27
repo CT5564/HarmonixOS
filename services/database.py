@@ -46,9 +46,6 @@ def initialize_database():
             last_synced TIMESTAMP
         )
         """)
-        cursor.execute("""
-        
-        """)
 
 
         # ============================================================
@@ -261,7 +258,7 @@ def search_tasks(
 
 
 def get_today_tasks(
-    author_id: str,
+    author_id: str | None,
     today: str
 ):
 
@@ -269,39 +266,64 @@ def get_today_tasks(
 
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT
-                id,
-                title,
-                description,
-                priority,
-                due_date,
-                due_time,
-                project,
-                tags,
-                status
-            FROM tasks
-            WHERE
-                author_id = ?
-                AND due_date = ?
-                AND status != 'completed'
-            ORDER BY
-                due_time IS NULL,
-                due_time,
-                created_at
-            """,
-            (
-                author_id,
-                today
+        if author_id:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags,
+                    status
+                FROM tasks
+                WHERE
+                    author_id = ?
+                    AND due_date = ?
+                    AND status != 'completed'
+                ORDER BY
+                    due_time IS NULL,
+                    due_time,
+                    created_at
+                """,
+                (
+                    author_id,
+                    today
+                )
             )
-        )
+        else:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags,
+                    status
+                FROM tasks
+                WHERE
+                    due_date = ?
+                    AND status != 'completed'
+                ORDER BY
+                    due_time IS NULL,
+                    due_time,
+                    created_at
+                """,
+                (today,)
+            )
 
         return cursor.fetchall()
 
 
 def get_overdue_tasks(
-    author_id: str,
+    author_id: str | None,
     today: str
 ):
 
@@ -309,32 +331,56 @@ def get_overdue_tasks(
 
         cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            SELECT
-                id,
-                title,
-                description,
-                priority,
-                due_date,
-                due_time,
-                project,
-                tags,
-                status
-            FROM tasks
-            WHERE
-                author_id = ?
-                AND due_date < ?
-                AND status != 'completed'
-            ORDER BY
-                due_date,
-                due_time
-            """,
-            (
-                author_id,
-                today
+        if author_id:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags,
+                    status
+                FROM tasks
+                WHERE
+                    author_id = ?
+                    AND due_date < ?
+                    AND status != 'completed'
+                ORDER BY
+                    due_date,
+                    due_time
+                """,
+                (
+                    author_id,
+                    today
+                )
             )
-        )
+        else:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    description,
+                    priority,
+                    due_date,
+                    due_time,
+                    project,
+                    tags,
+                    status
+                FROM tasks
+                WHERE
+                    due_date < ?
+                    AND status != 'completed'
+                ORDER BY
+                    due_date,
+                    due_time
+                """,
+                (today,)
+            )
 
         return cursor.fetchall()
 
@@ -407,7 +453,31 @@ def delete_note(
         conn.commit()
 
 
-async def search_notes(
+def update_note(
+    note_id: int,
+    content: str
+):
+
+    with get_connection() as conn:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE notes
+            SET content = ?
+            WHERE id = ?
+            """,
+            (
+                content,
+                note_id
+            )
+        )
+
+        conn.commit()
+
+
+def search_notes(
     keyword: str
 ):
 

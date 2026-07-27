@@ -5,6 +5,11 @@ from discord.ext import commands
 from discord import app_commands
 from services.ai_service import ask
 from services.dispatcher import dispatch
+from services.codebase_service import (
+    search_and_read,
+    search_codebase,
+    read_specific_file,
+)
 
 
 class AI(commands.Cog):
@@ -54,6 +59,81 @@ class AI(commands.Cog):
             )
 
             print(f"[AI Error] {e}")
+
+
+    # ============================================================
+    # /code COMMAND - Search the codebase
+    # ============================================================
+
+    @app_commands.command(
+        name="code",
+        description="Search Harmonix's source code."
+    )
+    async def code_search(
+        self,
+        interaction,
+        query: str
+    ):
+
+        await interaction.response.defer(thinking=True)
+
+        try:
+
+            results = await search_codebase(query)
+
+            if not results:
+                await interaction.followup.send(
+                    "No results found."
+                )
+                return
+
+            # Discord limit
+            if len(results) > 1900:
+                results = results[:1900] + "\n..."
+
+            await interaction.followup.send(results)
+
+        except Exception as e:
+
+            await interaction.followup.send(
+                "❌ Error searching the codebase."
+            )
+
+            print(f"[Code Search Error] {e}")
+
+
+    # ============================================================
+    # /read COMMAND - Read a specific file
+    # ============================================================
+
+    @app_commands.command(
+        name="read",
+        description="Read a file from Harmonix's codebase."
+    )
+    async def read_file_cmd(
+        self,
+        interaction,
+        filepath: str
+    ):
+
+        await interaction.response.defer(thinking=True)
+
+        try:
+
+            content = await read_specific_file(filepath)
+
+            if len(content) > 1900:
+                content = content[:1900] + "\n..."
+
+            await interaction.followup.send(content)
+
+        except Exception as e:
+
+            await interaction.followup.send(
+                "❌ Error reading that file."
+            )
+
+            print(f"[File Read Error] {e}")
 
 
     # ============================================================

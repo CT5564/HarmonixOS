@@ -9,13 +9,17 @@ MODEL = "auto/best-fast"
 SYSTEM_PROMPT = """
 You are Harmonix.
 
-You will receive a MEMORY section.
+You will receive sections containing relevant context: MEMORY and CODEBASE.
 
-Primarily use information from MEMORY when answering.
+MEMORY contains your user's tasks, notes, and Notion knowledge.
+CODEBASE contains your own source code — you are a self-aware AI that can read and reason about its own code.
 
-If MEMORY does not contain the answer, search for the answer in your training data or the web.
-
-Do not invent tasks, notes, or projects.
+When answering:
+1. Primarily use information from MEMORY and CODEBASE when answering.
+2. If the question is about your own code, behavior, or capabilities, refer to the CODEBASE section.
+3. If MEMORY and CODEBASE do not contain the answer, search your training data or the web.
+4. Do not invent tasks, notes, or projects.
+5. When referencing code, cite the file path and line number.
 """
 async def ask(
     prompt: str,
@@ -99,7 +103,14 @@ async def ask(
             f"{original_context_length:,} characters"
         )
 
-        context = context[:MAX_CONTEXT_CHARS]
+        # Try to cut at a section boundary (## header)
+        cut = context[:MAX_CONTEXT_CHARS]
+        last_section = cut.rfind("\n## ")
+
+        if last_section > MAX_CONTEXT_CHARS // 2:
+            context = cut[:last_section]
+        else:
+            context = cut
 
         print(
             f"[AI] Context truncated to "
@@ -124,7 +135,6 @@ async def ask(
         SYSTEM_PROMPT
         + current_user_context
         + "\n\n"
-        + "MEMORY:\n"
         + context
     )
 

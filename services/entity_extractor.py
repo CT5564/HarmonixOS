@@ -7,12 +7,13 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 
-today = datetime.now(
-    ZoneInfo("Asia/Manila")
-).date()
+def _get_today():
+    return datetime.now(
+        ZoneInfo("Asia/Manila")
+    ).date()
 
 
-SYSTEM_PROMPT = f"""
+SYSTEM_PROMPT = """
 You extract task information.
 
 Return ONLY valid JSON.
@@ -96,12 +97,13 @@ async def extract_task(
             f"- {project}"
             for project in projects
         )
+        today = _get_today()
         response = await chat(
             model="auto/best-reasoning",
             messages=[
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT + PROJECT_LIST
+                    "content": SYSTEM_PROMPT.format(today=today) + PROJECT_LIST
                 },
                 {
                     "role": "user",

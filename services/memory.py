@@ -1,4 +1,5 @@
 import re
+import asyncio
 
 import services.task_service as task_service
 import services.note_service as note_service
@@ -76,7 +77,6 @@ STOP_WORDS = {
 
     "what's",
     "whats",
-    "what",
     "when's",
     "whens",
     "where's",
@@ -250,7 +250,6 @@ STOP_WORDS = {
     "already",
     "again",
     "only",
-    "just",
     "kind",
     "sort",
     "thing",
@@ -284,8 +283,6 @@ STOP_WORDS = {
     "anybody",
 
     "stuff",
-    "thing",
-    "things",
     "one",
     "ones",
 
@@ -311,7 +308,6 @@ PERSONAL_TERMS = {
     "me",
     "my",
     "mine",
-    "myself",
     "myself",
     "about me",
     "my project",
@@ -399,63 +395,42 @@ async def retrieve_memory(
         f"Extracted memory keywords: {keywords}"
     )
 
-    # Search each meaningful keyword
-    for keyword in keywords:
-
-        task_results = (
-            await task_service.search_for_tasks(
-                author_id,
-                keyword
-            )
+    # Search all keywords concurrently
+    async def search_keyword(keyword):
+        task_results = await task_service.search_for_tasks(
+            author_id, keyword
         )
-
-        note_results = (
-            await note_service.search_for_notes(
-                keyword
-            )
+        note_results = await note_service.search_for_notes(
+            keyword
         )
-
-        page_results = (
-            await notion_service.search_pages(
-                keyword
-            )
+        page_results = await notion_service.search_pages(
+            keyword
         )
-
-        database_results = (
-            await notion_service.search_databases(
-                keyword
-            )
+        database_results = await notion_service.search_databases(
+            keyword
         )
+        return task_results, note_results, page_results, database_results
 
-        # Prevent duplicate tasks
+    results = await asyncio.gather(
+        *(search_keyword(kw) for kw in keywords)
+    )
+
+    for task_results, note_results, page_results, database_results in results:
         for task in task_results:
-
             if task not in tasks:
                 tasks.append(task)
 
-        # Prevent duplicate notes
         for note in note_results:
-
             if note not in notes:
                 notes.append(note)
-    
-        # Prevent duplicate notion pages
+
         for page in page_results:
-
             if page not in notion_pages:
-
-                notion_pages.append(
-                    page
-                )
-
+                notion_pages.append(page)
 
         for database in database_results:
-
             if database not in notion_pages:
-
-                notion_pages.append(
-                    database
-                )
+                notion_pages.append(database)
 
     # ============================================================
     # RETRIEVE NOTION PAGE CONTENT

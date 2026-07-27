@@ -121,8 +121,8 @@ async def edit_task(
 # ============================================================
 
 async def search_for_tasks(
-    keyword: str,
-    author_id: str
+    author_id: str,
+    keyword: str
 ):
 
     return db.search_tasks(

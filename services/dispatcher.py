@@ -6,12 +6,14 @@ from services import task_service, note_service, ai_service
 from services.logger import logger
 from services.entity_extractor import extract_task
 from services.project_service import get_project_names
+
+
 async def dispatch(
     message: str,
     author_id: str = None,
     author_name: str = None
 ):
-    
+
     print(f"Dispatching message: {message}")
     print(f"Author ID: {author_id}")
     print(f"Author Name: {author_name}")
@@ -40,12 +42,12 @@ async def dispatch(
                 projects = await get_project_names()
 
                 entity = await extract_task(
-                    task,
+                    message,
                     author_id,
                     projects
                 )
                 await task_service.create_task(entity)
-                return f"✅ Task created: **{entity.title}**"
+                result = f"✅ Task created: **{entity.title}**"
 
             case Intent.TASK_QUERY:
                 tasks = await task_service.get_all_tasks(author_id)
@@ -65,7 +67,7 @@ async def dispatch(
                     message,
                     author_id,
                     author_name
-)
+                )
                 result = "📝 Note saved."
 
             case Intent.NOTE_QUERY:
@@ -86,12 +88,11 @@ async def dispatch(
                 print(
                     f"[Dispatcher] Author: {author_name}"
                 )
-                return await ai_service.ask(
+                result = await ai_service.ask(
                     message,
                     author_id=author_id,
                     author_name=author_name
                 )
-                
 
             case _:
                 result = "I couldn't determine your intent."
@@ -127,3 +128,5 @@ async def dispatch(
             ```
             """
         )
+
+        return "❌ Something went wrong processing your message."

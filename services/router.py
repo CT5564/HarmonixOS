@@ -192,19 +192,11 @@ CHAT
         "CHAT"
     }
 
-    raw = response["message"]["content"]
+    for valid in VALID_INTENTS:
+        if valid in label:
+            try:
+                return Intent[valid]
+            except KeyError:
+                return Intent.CHAT
 
-    intent = None
-
-    for label in VALID_INTENTS:
-        if label in raw:
-            intent = label
-            break
-
-    if intent is None:
-        intent = "CHAT"
-    try:
-        return Intent[label]
-
-    except KeyError:
-        return Intent.CHAT
+    return Intent.CHAT

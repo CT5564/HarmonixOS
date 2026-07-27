@@ -21,7 +21,15 @@ class Notes(commands.Cog):
         content: str
     ):
 
-        await note_service.create_note(content)
+        await note_service.create_note(
+            content,
+            author_id=str(interaction.user.id),
+            author_name=(
+                interaction.user.nick
+                or interaction.user.global_name
+                or interaction.user.name
+            )
+        )
 
         await interaction.response.send_message(
             f"📝 Saved:\n**{content}**"
