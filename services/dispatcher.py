@@ -1,35 +1,135 @@
 #Based on intent from the router, 
 #dispatches the message to the appropriate service for processing.
 
-
 from services.router import classify, Intent
 from services import task_service, note_service, ai_service
+from services.log import get_log
+from services.logger import logger
+from services.entity_extractor import extract_task
+from services.project_service import get_project_names
+
+log = get_log(__name__)
 
 
-async def dispatch(message: str):
+async def dispatch(
+    message: str,
+    author_id: str = None,
+    author_name: str = None
+):
+
+    log.debug(f"Dispatching message: {message}")
+    log.debug(f"Author ID: {author_id}")
+    log.debug(f"Author Name: {author_name}")
 
     intent = await classify(message)
 
-    match intent:
+    log.info(f"Identified intent: {intent}")
 
-        case Intent.TASK_CREATE:
-            await task_service.create_task(message)
-            return "✅ Task created."
+    await logger.info(
+        f"""
+📨 Dispatch
 
-        case Intent.TASK_QUERY:
-            tasks = await task_service.get_tasks()
-            return tasks
+**Message**
+{message}
 
-        case Intent.NOTE_CREATE:
-            await note_service.create_note(message)
-            return "📝 Note saved."
+**Intent**
+{intent.name}
+"""
+    )
 
-        case Intent.NOTE_QUERY:
-            notes = await note_service.get_notes()
-            return notes
+    try:
 
-        case Intent.CHAT:
-            return await ai_service.ask(message)
+        match intent:
 
-        case _:
-            return "I couldn't determine your intent."
+            case Intent.TASK_CREATE:
+                projects = await get_project_names()
+
+                entity = await extract_task(
+                    message,
+                    author_id,
+                    projects
+                )
+                await task_service.create_task(entity)
+                result = f"✅ Task created: **{entity.title}**"
+
+            case Intent.TASK_QUERY:
+                tasks = await task_service.get_all_tasks(author_id)
+
+                if not tasks:
+                    result = "🎉 No tasks."
+                else:
+                    msg = "# 📋 Tasks\n\n"
+
+                    for task in tasks:
+                        msg += f"`#{task[0]}` • {task[1]}\n"
+
+                    result = msg
+
+            case Intent.NOTE_CREATE:
+                await note_service.create_note(
+                    message,
+                    author_id,
+                    author_name
+                )
+                result = "📝 Note saved."
+
+            case Intent.NOTE_QUERY:
+                notes = await note_service.get_notes()
+
+                if not notes:
+                    result = "📝 No notes."
+
+                else:
+                    msg = "# 📝 Notes\n\n"
+
+                    for note in notes:
+                        msg += f"`#{note[0]}` • {note[1]}\n"
+
+                    result = msg
+
+            case Intent.CHAT:
+                log.debug(
+                    f"Author: {author_name}"
+                )
+                result = await ai_service.ask(
+                    message,
+                    author_id=author_id,
+                    author_name=author_name
+                )
+
+            case _:
+                result = "I couldn't determine your intent."
+
+        await logger.info(
+            f"""
+✅ Dispatch Complete
+
+**Intent**
+{intent.name}
+
+**Response**
+{result[:300]}
+"""
+        )
+
+        return result
+
+    except Exception as e:
+
+        await logger.error(
+            f"""
+            ❌ Dispatch Error
+
+            **Message**
+            {message}
+
+            **Intent**
+            {intent.name if intent else "Unknown"}
+
+            ```text
+            {e}
+            ```
+            """
+        )
+
+        return "❌ Something went wrong processing your message."

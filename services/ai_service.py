@@ -1,86 +1,96 @@
-# AI Service. Handles all interactions with the AI model.
+# AI Service
+#
+# Thin wrapper around the chat agent.
+# The dispatcher calls this for CHAT intent.
 
-from services.ollama_client import chat
-from services.context import build_context
+from agents.chat import chat_agent
+from services.log import get_log
 from services.logger import logger
 
-MODEL = "llama3.2:3b"
+log = get_log(__name__)
 
-SYSTEM_PROMPT = """
-You are Harmonix.
 
-You are an operating system.
+async def ask(
+    prompt: str,
+    author_id: str | None = None,
+    author_name: str | None = None
+) -> str:
 
-You have access to:
+    log.info(
+        f"Chat request from "
+        f"{author_name or 'Unknown'}"
+    )
 
-• Tasks
-• Notes
-• Projects
+    await logger.ai(
+        f"""
+🚀 **AI Request**
 
-Use the provided context.
+**User**
+{author_name or "Unknown"}
 
-Never invent information not found in the context.
+**Agent**
+chat
+
+**Prompt Length**
+{len(prompt):,} characters
+
+**Status**
+⏳ Processing
 """
-
-async def ask(prompt: str):
-
-    context = build_context()
+    )
 
     try:
-        response = await chat(
-            model=MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT + "\n\n" + context
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+
+        answer = await chat_agent(
+            prompt,
+            author_id=author_id,
+            author_name=author_name
         )
 
     except Exception as e:
-        await logger.error(
-            f"❌ AI Error\n\n```text\n{e}\n```"
+
+        log.error(
+            f"{type(e).__name__}: {e}"
         )
+
+        await logger.error(
+            f"""
+❌ **AI Error**
+
+**User**
+{author_name or "Unknown"}
+
+**Agent**
+chat
+
+**Error**
+```text
+{type(e).__name__}: {e}
+```
+
+**Status**
+🔴 Failed
+"""
+        )
+
         raise
 
     await logger.ai(
-    f"""
-    🤖 AI Request
+        f"""
+✅ **AI Completed**
 
-    **Model**
-    {response['model']}
+**User**
+{author_name or "Unknown"}
 
-    **Python**
-    {response['python_duration']:.2f}s
+**Agent**
+chat
 
-    **Inference**
-    {response['total_duration']/1e9:.2f}s
+**Response Length**
+{len(answer):,} characters
 
-    **Load**
-    {response['load_duration']/1e9:.2f}s
-
-    **Prompt Eval**
-    {response['prompt_eval_duration']/1e9:.2f}s
-
-    **Generation**
-    {response['eval_duration']/1e9:.2f}s
-
-    **Prompt Tokens**
-    {response['prompt_eval_count']}
-
-    **Generated Tokens**
-    {response['eval_count']}
-
-    **Context**
-    {len(context)} chars
-
-    **Response**
-    {len(response['message']['content'])} chars
-    """
+**Status**
+✅ Done
+"""
     )
 
-    return response["message"]["content"]
+    return answer

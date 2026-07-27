@@ -5,6 +5,9 @@ from discord import app_commands
 
 from services.router import classify
 
+from services.log import get_log
+log = get_log(__name__)
+
 
 class Classify(commands.Cog):
 
@@ -20,21 +23,21 @@ class Classify(commands.Cog):
         interaction,
         message: str
     ):
-        print("1")
+        log.debug("Route 1")
 
         await interaction.response.defer()
 
-        print("2")
+        log.debug("Route 2")
 
         intent = await classify(message)
 
-        print("3")
+        log.debug("Route 3")
 
         await interaction.followup.send(
             f"{intent.value}"
         )
 
-        print("4")
+        log.debug("Route 4")
 
 
 async def setup(bot):

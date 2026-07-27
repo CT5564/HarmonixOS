@@ -5,6 +5,9 @@ from discord import app_commands
 
 import services.note_service as note_service
 
+from services.log import get_log
+log = get_log(__name__)
+
 
 class Notes(commands.Cog):
 
@@ -21,7 +24,15 @@ class Notes(commands.Cog):
         content: str
     ):
 
-        await note_service.create_note(content)
+        await note_service.create_note(
+            content,
+            author_id=str(interaction.user.id),
+            author_name=(
+                interaction.user.nick
+                or interaction.user.global_name
+                or interaction.user.name
+            )
+        )
 
         await interaction.response.send_message(
             f"📝 Saved:\n**{content}**"
@@ -35,7 +46,7 @@ class Notes(commands.Cog):
         self,
         interaction
     ):
-        print("NOTES COMMAND CALLED")
+        log.debug("Notes command called")
         notes = await note_service.get_notes()
 
         if not notes:

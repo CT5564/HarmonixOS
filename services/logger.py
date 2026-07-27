@@ -9,17 +9,20 @@ class Logger:
     def __init__(self):
         self.bot = None
         self.channel_id = None
+        self._channel = None
 
     def setup(self, bot, channel_id):
         self.bot = bot
         self.channel_id = channel_id
+        self._channel = None
 
     async def _send(self, title, message, color):
 
         if self.bot is None:
             return
 
-        channel = await self.bot.fetch_channel(self.channel_id)
+        if self._channel is None:
+            self._channel = await self.bot.fetch_channel(self.channel_id)
 
         embed = discord.Embed(
             title=title,
@@ -30,7 +33,7 @@ class Logger:
 
         embed.set_footer(text="Harmonix Logger")
 
-        await channel.send(embed=embed)
+        await self._channel.send(embed=embed)
 
     async def startup(self, message):
         await self._send(
